@@ -43,3 +43,22 @@ func TestEncoderImplEncodeWithNilImpl(t *testing.T) {
 	err := enc.Encode("test")
 	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
 }
+
+func TestDecoderImplDecodeIdeal(t *testing.T) {
+	buf := bytes.NewBuffer([]byte(`"test"`))
+	dec := DecoderImpl{Impl: json.NewDecoder(buf).Decode}
+
+	val := ""
+	err := dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test", val, func(s string) { t.Fatal(s) })
+}
+
+func TestDecoderImplDecodeWithNilImpl(t *testing.T) {
+	dec := DecoderImpl{}
+
+	val := ""
+	err := dec.Decode(&val)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", "", val, func(s string) { t.Fatal(s) })
+}

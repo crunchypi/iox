@@ -25,3 +25,27 @@ func (impl EncoderImpl) Encode(e any) error {
 
 	return impl.Impl(e)
 }
+
+// Decoder decodes values from binary form. Some commonly used encoders are:
+//   - json.NewDecoder(bytes.NewBuffer(nil))
+//   - gob.NewDecoder(bytes.NewBuffer(nil))
+type Decoder interface {
+	Decode(e any) error
+}
+
+// DecoderImpl implements Decoder with it's Decode method by deferring to 'Impl'.
+// This is for convenience, as you may use functional implementation of Decoder
+// without defining a new type (that's done for you here).
+type DecoderImpl struct {
+	Impl func(d any) error
+}
+
+// Decode implements Decoder by deferring to the internal "Impl" func.
+// If the internal "Impl" is not set, an io.EOF will be returned.
+func (impl DecoderImpl) Decode(d any) error {
+	if impl.Impl == nil {
+		return io.EOF
+	}
+
+	return impl.Impl(d)
+}
