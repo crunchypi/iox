@@ -3,7 +3,7 @@ Generic variant of Go's io pkg
 
 Index 
 - [Core interfaces](#core-interfaces)
-- [Errors]()
+- [Errors](errors)
 - [Impl pattern](#impl-pattern)
 
 
@@ -15,6 +15,15 @@ Index
 // Reader reads T, it is intended as a generic variant of io.Reader.
 type Reader[T any] interface {
 	Read(context.Context) (T, error)
+}
+```
+
+#### ReadCloser
+```go
+// ReadCloser groups Reader with io.Closer.
+type ReadCloser[T any] interface {
+	io.Closer
+	Reader[T]
 }
 ```
 
@@ -40,4 +49,20 @@ type ReaderImpl[T any] struct {
 // Read implements Reader by deferring to the internal "Impl" func.
 // If the internal "Impl" is not set, an io.EOF will be returned.
 func (impl ReaderImpl[T]) Read(ctx context.Context) (r T, err error)
+```
+
+#### Impl for ReadCloser
+```go
+// ReadCloserImpl implements Reader and io.Closer with its methods by deferring
+// to ImplC (closer) and ImplR (reader). 
+type ReadCloserImpl[T any] struct {
+	ImplC func() error
+	ImplR func(context.Context) (T, error)
+}
+
+// Read implements Closer by deferring to the internal "ImplC" func.
+func (impl ReadCloserImpl[T]) Close() (err error)
+
+// Read implements Reader by deferring to the internal "ImplR" func.
+func (impl ReadCloserImpl[T]) Read(ctx context.Context) (r T, err error)
 ```
