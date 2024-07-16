@@ -1,6 +1,7 @@
 package iox
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -131,6 +132,59 @@ func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T] {
 			Impl: func(ctx context.Context) (v T, err error) {
 				err = d.Decode(&v)
 				return
+			},
+		}
+	}
+}
+
+// NewReaderFromValues creates an io.Reader from a Reader and Encoder.
+// It simply reads values from 'r', encodes them, and passes them along to the
+// caller. As such, when decoding values from the returned io.Reader one should
+// use a decoder which matches the encoder passed here. If 'r' is nil, an
+// empty (not nil) io.Reader is returned; if 'f' is nil, the encoder is set to
+// json.NewEncoder. Example:
+//
+//	// Create the io.Reader from value Reader.
+//	r := NewReaderFromValues(NewReaderFrom("test1", "test2"))(
+//	    func(w io.Writer) Encoder {
+//	        return json.NewEncoder(w)
+//	    },
+//	)
+//
+//	// Instantly pass it to a decoder just so we may log out the values.
+//	dec := json.NewDecoder(r)
+//	val := ""
+//
+//	t.Log(dec.Decode(&val), val) // <nil>, "test1"
+//	t.Log(dec.Decode(&val), val) // <nil>, "test2"
+//	t.Log(dec.Decode(&val), val) // EOF, "test2" <--- val is unchanged.
+func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader {
+	return func(f func(io.Writer) Encoder) io.Reader {
+		if r == nil {
+			return readWriteCloserImpl{}
+		}
+
+		b := bytes.NewBuffer(nil)
+		e := Encoder(json.NewEncoder(b))
+		if f != nil {
+			if _e := f(b); _e != nil {
+				e = _e
+			}
+		}
+
+		return readWriteCloserImpl{
+			ImplR: func(p []byte) (n int, err error) {
+				v, err := r.Read(context.Background())
+				if err != nil {
+					return 0, err
+				}
+
+				err = e.Encode(v)
+				if err != nil {
+					return 0, err
+				}
+
+				return b.Read(p)
 			},
 		}
 	}

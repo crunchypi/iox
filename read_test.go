@@ -145,3 +145,73 @@ func TestNewReaderFromBytesWithNilDecoder(t *testing.T) {
 	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
 	assertEq("val", "", val, func(s string) { t.Fatal(s) })
 }
+
+func TestNewReaderFromValuesIdeal(t *testing.T) {
+	fn := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+	br := NewReaderFromValues(NewReaderFrom("test1", "test2"))(fn)
+
+	dec := json.NewDecoder(br)
+	err := *new(error)
+	val := ""
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test1", val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test2", val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test2", val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderFromValuesWithNilReader(t *testing.T) {
+	fn := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+	br := NewReaderFromValues[int](nil)(fn)
+
+	dec := json.NewDecoder(br)
+	err := *new(error)
+	val := ""
+
+	err = dec.Decode(&val)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", "", val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderFromValuesWithNilEncoder(t *testing.T) {
+	vr := NewReaderFrom("test1", "test2")
+	br := NewReaderFromValues(vr)(nil)
+
+	dec := json.NewDecoder(br)
+	err := *new(error)
+	val := ""
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test1", val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test2", val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test2", val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderFromValuesWithEncodeError(t *testing.T) {
+	fn := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+	br := NewReaderFromValues(NewReaderFrom(make(chan int)))(fn)
+
+	dec := json.NewDecoder(br)
+	err := *new(error)
+	val := ""
+
+	err = dec.Decode(&val)
+
+	want := "json: unsupported type: chan int"
+	have := err.Error()
+	assertEq("err", want, have, func(s string) { t.Fatal(s) })
+}
