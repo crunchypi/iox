@@ -70,3 +70,23 @@ func (impl ReadCloserImpl[T]) Read(ctx context.Context) (r T, err error) {
 
 	return impl.ImplR(ctx)
 }
+
+// -----------------------------------------------------------------------------
+// Constructors.
+// -----------------------------------------------------------------------------
+
+// NewReaderFrom returns a Reader which yields values from the given vals.
+func NewReaderFrom[T any](vs ...T) Reader[T] {
+	i := 0
+	return ReaderImpl[T]{
+		Impl: func(ctx context.Context) (val T, err error) {
+			if i >= len(vs) {
+				return val, io.EOF
+			}
+
+			val = vs[i]
+			i++
+			return
+		},
+	}
+}

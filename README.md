@@ -3,6 +3,7 @@ Generic variant of Go's io pkg
 
 Index 
 - [Core interfaces](#core-interfaces)
+- [Constructors/Factories](#constructorsfactories)
 - [Errors](errors)
 - [Impl pattern](#impl-pattern)
 
@@ -25,6 +26,16 @@ type ReadCloser[T any] interface {
 	io.Closer
 	Reader[T]
 }
+```
+
+
+
+## Constructors/Factories
+
+
+```go
+// NewReaderFrom returns a Reader which yields values from the given vals.
+func NewReaderFrom[T any](vs ...T) Reader[T]
 ```
 
 

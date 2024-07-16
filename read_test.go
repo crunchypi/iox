@@ -62,3 +62,26 @@ func TestReadCloserImplCloseWithNilImpl(t *testing.T) {
 	err := rc.Close()
 	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
 }
+
+// -----------------------------------------------------------------------------
+// Constructors.
+// -----------------------------------------------------------------------------
+
+func TestNewReaderFromIdeal(t *testing.T) {
+	r := NewReaderFrom(1, 2)
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 1, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 2, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
