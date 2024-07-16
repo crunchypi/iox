@@ -93,3 +93,10 @@ func (impl readWriteCloserImpl) Write(p []byte) (n int, err error) {
 
 	return impl.ImplW(p)
 }
+
+// -----------------------------------------------------------------------------
+// Abbreviations.
+// -----------------------------------------------------------------------------
+
+type decoderFn = func(io.Reader) Decoder
+type encoderFn = func(io.Writer) Encoder

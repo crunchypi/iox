@@ -38,6 +38,15 @@ type ReadCloser[T any] interface {
 func NewReaderFrom[T any](vs ...T) Reader[T]
 ```
 
+```go
+// NewReaderFromBytes creates a new T reader from an io.Reader and Decoder.
+// It simply reads bytes from 'r', decodes them, and passes them along to the
+// caller. As such, the decoder must match the encoder used to create the bytes.
+// If 'r' is nil, an empty Reader is returned; if 'f' is nil, the decoder is set
+// to json.NewDecoder.
+func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T]
+```
+
 
 
 ## Errors

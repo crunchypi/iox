@@ -1,7 +1,9 @@
 package iox
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"testing"
 )
@@ -84,4 +86,62 @@ func TestNewReaderFromIdeal(t *testing.T) {
 	val, err = r.Read(nil)
 	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
 	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderFromBytesIdeal(t *testing.T) {
+	b := bytes.NewBuffer(nil)
+	json.NewEncoder(b).Encode("test1")
+	json.NewEncoder(b).Encode("test2")
+
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	r := NewReaderFromBytes[string](b)(f)
+
+	err := *new(error)
+	val := ""
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test1", val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test2", val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", "", val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderFromBytesWithNilReader(t *testing.T) {
+	r := NewReaderFromBytes[string](nil)(nil)
+
+	err := *new(error)
+	val := ""
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", "", val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderFromBytesWithNilDecoder(t *testing.T) {
+	b := bytes.NewBuffer(nil)
+	json.NewEncoder(b).Encode("test1")
+	json.NewEncoder(b).Encode("test2")
+
+	r := NewReaderFromBytes[string](b)(nil)
+
+	err := *new(error)
+	val := ""
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test1", val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", "test2", val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", "", val, func(s string) { t.Fatal(s) })
 }

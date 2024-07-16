@@ -2,6 +2,7 @@ package iox
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 )
 
@@ -88,5 +89,49 @@ func NewReaderFrom[T any](vs ...T) Reader[T] {
 			i++
 			return
 		},
+	}
+}
+
+// NewReaderFromBytes creates a new T reader from an io.Reader and Decoder.
+// It simply reads bytes from 'r', decodes them, and passes them along to the
+// caller. As such, the decoder must match the encoder used to create the bytes.
+// If 'r' is nil, an empty Reader is returned; if 'f' is nil, the decoder is set
+// to json.NewDecoder. Example:
+//
+//	// Used as io.Reader
+//	b := bytes.NewBuffer(nil)
+//
+//	// Using json encoder, so the decoder has to be json in NewReaderFromBytes
+//	json.NewEncoder(b).Encode("test1")
+//	json.NewEncoder(b).Encode("test2")
+//
+//	r := NewReaderFromBytes[string](b)(
+//		func(r io.Reader) Decoder {
+//			return json.NewDecoder(r)
+//		},
+//	)
+//
+//	t.Log(r.Read(context.Background())) // "test1" <nil>
+//	t.Log(r.Read(context.Background())) // "test2" <nil>
+//	t.Log(r.Read(context.Background())) // "", io.EOF
+func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T] {
+	return func(f func(io.Reader) Decoder) Reader[T] {
+		if r == nil {
+			return ReaderImpl[T]{}
+		}
+
+		var d Decoder = json.NewDecoder(r)
+		if f != nil {
+			if _d := f(r); _d != nil {
+				d = _d
+			}
+		}
+
+		return ReaderImpl[T]{
+			Impl: func(ctx context.Context) (v T, err error) {
+				err = d.Decode(&v)
+				return
+			},
+		}
 	}
 }
