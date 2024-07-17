@@ -36,6 +36,15 @@ type Writer[T any] interface {
 }
 ```
 
+#### WriteCloser
+```go
+// WriteCloser groups Writer with io.Closer.
+type WriteCloser[T any] interface {
+	io.Closer
+	Writer[T]
+}
+```
+
 
 
 ## Constructors/Factories
@@ -114,4 +123,20 @@ type WriterImpl[T any] struct {
 
 // Write implements Writer by deferring to the internal "Impl" func.
 func (impl WriterImpl[T]) Write(ctx context.Context, v T) (err error) 
+```
+
+#### Impl for WriteCloser.
+```go
+// WriteCloserImpl implements Writer and io.Closer with its methods by deferring
+// to ImplC (closer) and ImplW (writer). 
+type WriteCloserImpl[T any] struct {
+	ImplC func() error
+	ImplW func(context.Context, T) error
+}
+
+// Close implements io.Closer by deferring to the internal ImplC func.
+func (impl WriteCloserImpl[T]) Close() error
+
+// Write implements Writer by deferring to the internal "ImplW" func.
+func (impl WriteCloserImpl[T]) Write(ctx context.Context, v T) (err error)
 ```
