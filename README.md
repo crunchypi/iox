@@ -28,6 +28,14 @@ type ReadCloser[T any] interface {
 }
 ```
 
+#### Writer
+```go
+// Writer writes T, it is intended as a generic variant of io.Writer.
+type Writer[T any] interface {
+	Write(context.Context, T) error
+}
+```
+
 
 
 ## Constructors/Factories
@@ -62,7 +70,7 @@ func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
 ## Errors
 This package inherits errors from the `io` package and only uses:
 - `io.EOF`: Used with `iox.Reader[T]` and `iox.Decoder`
-- `io.ErrClosedPipe`: 
+- `io.ErrClosedPipe`: Used with `iox.Writer[T]` and `iox.Encoder`
 
 
 
@@ -95,4 +103,15 @@ func (impl ReadCloserImpl[T]) Close() (err error)
 
 // Read implements Reader by deferring to the internal "ImplR" func.
 func (impl ReadCloserImpl[T]) Read(ctx context.Context) (r T, err error)
+```
+
+#### Impl for Writer.
+```go
+// WriterImpl implements Writer with its Write method by deferring to 'Impl'.
+type WriterImpl[T any] struct {
+	Impl func(context.Context, T) error
+}
+
+// Write implements Writer by deferring to the internal "Impl" func.
+func (impl WriterImpl[T]) Write(ctx context.Context, v T) (err error) 
 ```
