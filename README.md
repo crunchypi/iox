@@ -81,6 +81,16 @@ func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
 func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T]
 ```
 
+```go
+// NewReaderFromValues creates an io.Reader from a Reader and Encoder.
+// It simply reads values from 'r', encodes them, and passes them along to the
+// caller. As such, when decoding values from the returned io.Reader one should
+// use a decoder which matches the encoder passed here. If 'r' is nil, an
+// empty (not nil) io.Reader is returned; if 'f' is nil, the encoder is set to
+// json.NewEncoder. 
+func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
+```
+
 
 
 ## Errors

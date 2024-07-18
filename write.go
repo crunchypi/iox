@@ -127,3 +127,65 @@ func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T] {
 		}
 	}
 }
+
+// NewWriterFromBytes returns an io.Writer which accepts bytes, decodes them
+// using the given decoder, and then writes them to 'w'. If 'w' is nil, an emtpy
+// io.Writer is returned; if 'f' is nil, the decoder is set to json.NewDecoder.
+// Example:
+//
+//	// Writes simply logs values.
+//	vw := WriterImpl[int]{
+//		Impl: func(ctx context.Context, v int) error {
+//			t.Log(v)
+//			return nil
+//		},
+//	}
+//
+//	// io.Writer
+//	bw := NewWriterFromBytes(vw)(
+//		func(r io.Reader) Decoder {
+//			return json.NewDecoder(r)
+//		},
+//	)
+//
+//	// Logs "9"
+//	json.NewEncoder(bw).Encode(9)
+func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer {
+	return func(f decoderFn) io.Writer {
+		if w == nil {
+			return readWriteCloserImpl{}
+		}
+
+		b := bytes.NewBuffer(nil)
+		d := func(r io.Reader) Decoder { return json.NewDecoder(r) }(b)
+
+		if f != nil {
+			if _d := f(b); _d != nil {
+				d = _d
+			}
+		}
+
+		return readWriteCloserImpl{
+			ImplW: func(p []byte) (n int, err error) {
+				n, err = b.Write(p)
+				if err != nil {
+					return
+				}
+
+				var v T
+				err = d.Decode(&v)
+
+				if err != nil {
+					return
+				}
+
+				err = w.Write(nil, v)
+				if err != nil {
+					return
+				}
+
+				return
+			},
+		}
+	}
+}

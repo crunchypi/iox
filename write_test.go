@@ -9,6 +9,19 @@ import (
 )
 
 // -----------------------------------------------------------------------------
+// Test utils.
+// -----------------------------------------------------------------------------
+
+func newSliceWriter[T any](s *[]T) Writer[T] {
+	return WriterImpl[T]{
+		Impl: func(ctx context.Context, v T) error {
+			*s = append(*s, v)
+			return nil
+		},
+	}
+}
+
+// -----------------------------------------------------------------------------
 // Writer impl.
 // -----------------------------------------------------------------------------
 
@@ -151,5 +164,51 @@ func TestNewWriterFromValuesWithEncodeErr(t *testing.T) {
 
 	want := "json: unsupported type: chan int"
 	have := w.Write(nil, make(chan int)).Error()
+	assertEq("err", want, have, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesIdeal(t *testing.T) {
+	s := make([]int, 0, 3)
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes(newSliceWriter(&s))(f)
+
+	json.NewEncoder(w).Encode(2)
+	json.NewEncoder(w).Encode(3)
+
+	assertEq("s", []int{2, 3}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithNilWriter(t *testing.T) {
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes[int](nil)(f)
+
+	err := json.NewEncoder(w).Encode(2)
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithNilDecoder(t *testing.T) {
+	s := make([]int, 0, 3)
+	w := NewWriterFromBytes(newSliceWriter(&s))(nil)
+
+	json.NewEncoder(w).Encode(2)
+	json.NewEncoder(w).Encode(3)
+
+	assertEq("s", []int{2, 3}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithDecodeErr(t *testing.T) {
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes(WriterImpl[int]{})(f)
+
+	_, err := w.Write([]byte("["))
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithWriteErr(t *testing.T) {
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes(WriterImpl[int]{})(f)
+
+	want := io.EOF
+	have := json.NewEncoder(w).Encode(1)
 	assertEq("err", want, have, func(s string) { t.Fatal(s) })
 }
