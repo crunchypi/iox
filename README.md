@@ -74,6 +74,13 @@ func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T]
 func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
 ```
 
+```go
+// NewWriterFromValues returns a Writer which accepts values, encodes them
+// using the given encoder, and then writes them to 'w'. If 'w' is nil, an empty
+// Writer is returned; if 'f' is nil, the encoder is set to json.NewEncoder.
+func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T]
+```
+
 
 
 ## Errors
