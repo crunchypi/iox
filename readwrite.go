@@ -1,0 +1,47 @@
+package iox
+
+import (
+	"context"
+	"io"
+)
+
+// -----------------------------------------------------------------------------
+// New ReadWriter iface + impl.
+// -----------------------------------------------------------------------------
+
+// ReadWriter groups Reader[T] and Writer[U].
+type ReadWriter[T, U any] interface {
+	Reader[T]
+	Writer[U]
+}
+
+// ReadWriterImpl implements ReadWriter[T, U] with its Read and Write methods,
+// their logic is deferred to the internal ImplR and ImplW fields (funcs).
+// This is for convenience, as you may use a functional implementation of
+// ReadWriter without defining a new type (that's done for you here).
+type ReadWriterImpl[T, U any] struct {
+	ImplR func(context.Context) (T, error)
+	ImplW func(context.Context, U) error
+}
+
+// Read implements the Reader[T] part of ReadWriter[T, U] by deferring logic
+// to the internal ImplR func. If it's not set, an io.EOF is returned.
+func (impl ReadWriterImpl[T, U]) Read(ctx context.Context) (r T, err error) {
+	if impl.ImplR == nil {
+		err = io.EOF
+		return
+	}
+
+	return impl.ImplR(ctx)
+}
+
+// Write implements the Writer[U] part of ReadWriter[T, U] by deferring logic
+// to the internal ImplW func. If it's not set, an io.ErrClosedPipe is returned.
+func (impl ReadWriterImpl[T, U]) Write(ctx context.Context, v U) (err error) {
+	if impl.ImplW == nil {
+		err = io.ErrClosedPipe
+		return
+	}
+
+	return impl.ImplW(ctx, v)
+}
