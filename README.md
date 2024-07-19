@@ -54,6 +54,16 @@ type ReadWriter[T, U any] interface {
 }
 ```
 
+#### ReadWriteCloser
+```go
+// ReadWriteCloser groups Reader[T] and Writer[U] with io.Closer.
+type ReadWriteCloser[T, U any] interface {
+	io.Closer
+	Reader[T]
+	Writer[U]
+}
+```
+
 
 
 ## Constructors/Factories
@@ -180,4 +190,24 @@ func (impl ReadWriterImpl[T, U]) Read(ctx context.Context) (r T, err error)
 
 // Write implements the Writer[U] part of ReadWriter[T, U] by calling ImplW.
 func (impl ReadWriterImpl[T, U]) Write(ctx context.Context, v U) (err error)
+```
+
+#### Impl for ReadWriteCloser.
+```go
+// ReadWriteCloserImpl implements ReadWriteCloser with its methods Read, Write
+// and Close, their logic is deferred to the internal ImplR, ImplW and ImplC.
+type ReadWriteCloserImpl[T, U any] struct {
+	ImplC func() error
+	ImplR func(context.Context) (T, error)
+	ImplW func(context.Context, U) error
+}
+
+// Close implements io.Close by deferring to the internal ImplC func.
+func (impl ReadWriteCloserImpl[T, U]) Close() (err error)
+
+// Read implements Reader[T] by deferring logic to the internal ImplR func.
+func (impl ReadWriteCloserImpl[T, U]) Read(ctx context.Context) (r T, err error)
+
+// Write implements Writer[U] by deferring logic to the internal ImplW func.
+func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error)
 ```
