@@ -98,3 +98,32 @@ func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error
 
 	return impl.ImplW(ctx, v)
 }
+
+// -----------------------------------------------------------------------------
+// Constructors.
+// -----------------------------------------------------------------------------
+
+// NewReadWriterFrom returns a ReadWriter[T] which writes into- and read from
+// an internal buffer. The buffer is initially populated with the given values.
+// The buffer acts like a stack, and a read while the buf is empty returns io.EOF.
+func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T] {
+	buf := make([]T, len(vs))
+	copy(buf, vs)
+
+	return ReadWriteCloserImpl[T, T]{
+		ImplR: func(ctx context.Context) (v T, err error) {
+			if len(buf) == 0 {
+				return v, io.EOF
+			}
+
+			// TODO: This is not a good implementation.
+			v = buf[0]
+			buf = buf[1:]
+			return
+		},
+		ImplW: func(ctx context.Context, v T) (err error) {
+			buf = append(buf, v)
+			return
+		},
+	}
+}

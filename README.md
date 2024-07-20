@@ -110,6 +110,13 @@ func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T]
 func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
 ```
 
+```go
+// NewReadWriterFrom returns a ReadWriter[T] which writes into- and read from
+// an internal buffer. The buffer is initially populated with the given values.
+// The buffer acts like a stack, and a read while the buf is empty returns io.EOF.
+func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]
+```
+
 
 
 ## Errors
