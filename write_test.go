@@ -1,0 +1,214 @@
+package iox
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"testing"
+)
+
+// -----------------------------------------------------------------------------
+// Test utils.
+// -----------------------------------------------------------------------------
+
+func newSliceWriter[T any](s *[]T) Writer[T] {
+	return WriterImpl[T]{
+		Impl: func(ctx context.Context, v T) error {
+			*s = append(*s, v)
+			return nil
+		},
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Writer impl.
+// -----------------------------------------------------------------------------
+
+func TestWriterImplWriteIdeal(t *testing.T) {
+	err := *new(error)
+	val := 0
+
+	w := WriterImpl[int]{}
+	w.Impl = func(ctx context.Context, v int) error { val = v; return nil }
+
+	err = w.Write(nil, 2)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 2, val, func(s string) { t.Fatal(s) })
+}
+
+func TestWriterImplWriteWithNilImpl(t *testing.T) {
+	err := *new(error)
+	val := 0
+
+	w := WriterImpl[int]{}
+
+	err = w.Write(nil, 2)
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+// -----------------------------------------------------------------------------
+// WriteCloser impl.
+// -----------------------------------------------------------------------------
+
+func TestWriteCloserImplWriteIdeal(t *testing.T) {
+	err := *new(error)
+	val := 0
+
+	wc := WriteCloserImpl[int]{}
+	wc.ImplW = func(ctx context.Context, v int) error { val = v; return nil }
+
+	err = wc.Write(nil, 2)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 2, val, func(s string) { t.Fatal(s) })
+}
+
+func TestWriteCloserImplWriteWithNilImpl(t *testing.T) {
+	err := *new(error)
+	val := 0
+
+	wc := WriteCloserImpl[int]{}
+
+	err = wc.Write(nil, 2)
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestWriteCloserImplCloseIdeal(t *testing.T) {
+	wc := WriteCloserImpl[int]{}
+	wc.ImplC = func() error { return nil }
+
+	err := wc.Close()
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+}
+
+func TestWriteCloserImplCloseWithNilImpl(t *testing.T) {
+	wc := WriteCloserImpl[int]{}
+
+	err := wc.Close()
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+}
+
+// -----------------------------------------------------------------------------
+// Constructors.
+// -----------------------------------------------------------------------------
+
+func TestNewWriterFromValuesIdeal(t *testing.T) {
+	b := bytes.NewBuffer(nil)
+	f := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+	w := NewWriterFromValues[int](b)(f)
+
+	dec := json.NewDecoder(b)
+	err := *new(error)
+	val := 0
+
+	err = w.Write(nil, 2)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+
+	err = w.Write(nil, 3)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 2, val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 3, val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 3, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromValuesWithNilWriter(t *testing.T) {
+	f := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+	w := NewWriterFromValues[int](nil)(f)
+
+	err := w.Write(nil, 2)
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromValuesWithNilEncoder(t *testing.T) {
+	b := bytes.NewBuffer(nil)
+	w := NewWriterFromValues[int](b)(nil)
+
+	dec := json.NewDecoder(b)
+	err := *new(error)
+	val := 0
+
+	err = w.Write(nil, 2)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+
+	err = w.Write(nil, 3)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 2, val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 3, val, func(s string) { t.Fatal(s) })
+
+	err = dec.Decode(&val)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 3, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromValuesWithEncodeErr(t *testing.T) {
+	b := bytes.NewBuffer(nil)
+	f := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+	w := NewWriterFromValues[chan int](b)(f)
+
+	want := "json: unsupported type: chan int"
+	have := w.Write(nil, make(chan int)).Error()
+	assertEq("err", want, have, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesIdeal(t *testing.T) {
+	s := make([]int, 0, 3)
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes(newSliceWriter(&s))(f)
+
+	json.NewEncoder(w).Encode(2)
+	json.NewEncoder(w).Encode(3)
+
+	assertEq("s", []int{2, 3}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithNilWriter(t *testing.T) {
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes[int](nil)(f)
+
+	err := json.NewEncoder(w).Encode(2)
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithNilDecoder(t *testing.T) {
+	s := make([]int, 0, 3)
+	w := NewWriterFromBytes(newSliceWriter(&s))(nil)
+
+	json.NewEncoder(w).Encode(2)
+	json.NewEncoder(w).Encode(3)
+
+	assertEq("s", []int{2, 3}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithDecodeErr(t *testing.T) {
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes(WriterImpl[int]{})(f)
+
+	_, err := w.Write([]byte("["))
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterFromBytesWithWriteErr(t *testing.T) {
+	f := func(r io.Reader) Decoder { return json.NewDecoder(r) }
+	w := NewWriterFromBytes(WriterImpl[int]{})(f)
+
+	want := io.EOF
+	have := json.NewEncoder(w).Encode(1)
+	assertEq("err", want, have, func(s string) { t.Fatal(s) })
+}
