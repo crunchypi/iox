@@ -4,7 +4,7 @@ Generic variant of Go's io pkg
 Index 
 - [Core interfaces](#core-interfaces)
 - [Constructors/Factories](#constructorsfactories)
-- [Errors](errors)
+- [Errors](#errors)
 - [Impl pattern](#impl-pattern)
 
 
@@ -101,13 +101,10 @@ func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T]
 ```
 
 ```go
-// NewReaderFromValues creates an io.Reader from a Reader and Encoder.
-// It simply reads values from 'r', encodes them, and passes them along to the
-// caller. As such, when decoding values from the returned io.Reader one should
-// use a decoder which matches the encoder passed here. If 'r' is nil, an
-// empty (not nil) io.Reader is returned; if 'f' is nil, the encoder is set to
-// json.NewEncoder. 
-func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
+// NewWriterFromBytes returns an io.Writer which accepts bytes, decodes them
+// using the given decoder, and then writes them to 'w'. If 'w' is nil, an emtpy
+// io.Writer is returned; if 'f' is nil, the decoder is set to json.NewDecoder.
+func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer 
 ```
 
 ```go
