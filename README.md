@@ -1,5 +1,5 @@
 # iox
-Generic variant of Go's io pkg
+Generic extension of Go's io pkg.
 
 Index 
 - [Core interfaces](#core-interfaces)
