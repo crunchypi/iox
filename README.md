@@ -77,6 +77,18 @@ var io.ErrClosedPipe	// Used by iox.Writer and iox.Encoder
 
 ## Constructors/Factories
 
+Here's an overview, all links go to the Go playground.
+
+- [`func NewReaderFrom[T any](vs ...T) Reader[T]`](https://go.dev/play/p/bP73PU1mQvf)
+- [`func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T]`](https://go.dev/play/p/ltcwrgk41Gw)
+- [`func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader`](https://go.dev/play/p/e9Sp5od3iE6)
+- [`func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T]`](https://go.dev/play/p/5arKiC4ZxRt)
+- [`func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer`](https://go.dev/play/p/yhaEWVIMoxw)
+- [`func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]`](https://go.dev/play/p/tusGzivubiI)
+
+<details>
+<summary> Alternatively, you may see signatures and docs by clicking here</summary>
+
 
 ```go
 // NewReaderFrom returns a Reader which yields values from the given vals.
@@ -122,7 +134,7 @@ func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer
 // The buffer acts like a stack, and a read while the buf is empty returns io.EOF.
 func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]
 ```
-
+</details>
 
 
 ## Impl pattern
