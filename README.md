@@ -3,8 +3,8 @@ Generic variant of Go's io pkg
 
 Index 
 - [Core interfaces](#core-interfaces)
-- [Constructors/Factories](#constructorsfactories)
 - [Errors](#errors)
+- [Constructors/Factories](#constructorsfactories)
 - [Impl pattern](#impl-pattern)
 
 
@@ -66,6 +66,15 @@ type ReadWriteCloser[T, U any] interface {
 
 
 
+## Errors
+This package does *not* define any new errors, it inherits them from the `io` package in the standard library.
+```go
+var io.EOF				// Used by iox.Reader and iox.Decoder
+var io.ErrClosedPipe	// Used by iox.Writer and iox.Encoder
+```
+
+
+
 ## Constructors/Factories
 
 
@@ -113,13 +122,6 @@ func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer
 // The buffer acts like a stack, and a read while the buf is empty returns io.EOF.
 func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]
 ```
-
-
-
-## Errors
-This package inherits errors from the `io` package and only uses:
-- `io.EOF`: Used with `iox.Reader[T]` and `iox.Decoder`
-- `io.ErrClosedPipe`: Used with `iox.Writer[T]` and `iox.Encoder`
 
 
 
