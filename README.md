@@ -77,8 +77,8 @@ type ReadWriteCloser[T, U any] interface {
 ## Errors
 This package does *not* define any new errors, it inherits them from the `io` package in the standard library.
 ```go
-var io.EOF				// Used by iox.Reader and iox.Decoder
-var io.ErrClosedPipe	// Used by iox.Writer and iox.Encoder
+var io.EOF              // Used by iox.Reader and iox.Decoder
+var io.ErrClosedPipe    // Used by iox.Writer and iox.Encoder
 ```
 
 
@@ -146,7 +146,29 @@ func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]
 
 
 ## Impl pattern
-The impl pattern allows you to implement an interface in a functional way, avoiding the tedium of defining structs which implement small interfaces. You simply define the function and place it inside an impl struct.
+The impl pattern allows you to implement an interface in a functional way, avoiding the tedium of defining structs which implement small interfaces. You simply define the function and place it inside an impl struct. There is an impl struct for all [Core interfaces](#core-interfaces), but I'll show the one associated with `iox.Reader` to make it clear:
+
+```go
+// Here's how it may be used to e.g implement a Reader mapper:
+//	https://go.dev/play/p/JQY_1vQZ6pz.
+type ReaderImpl[T any] struct {
+	Impl func(context.Context) (T, error)
+}
+
+func (impl ReaderImpl[T]) Read(ctx context.Context) (r T, err error) {
+	if impl.Impl == nil {
+		err = io.EOF
+		return
+	}
+
+	return impl.Impl(ctx)
+}
+```
+
+With this pattern you may easily define e.g a mapper func for a `iox.Reader`, e.g [this go playground](https://go.dev/play/p/JQY_1vQZ6pz)
+
+<details>
+<summary>As mentioned, an impl struct exists for all core interfaces, you may see them by clicking here</summary>
 
 #### Impl for Reader
 ```go
@@ -237,3 +259,4 @@ func (impl ReadWriteCloserImpl[T, U]) Read(ctx context.Context) (r T, err error)
 // Write implements Writer[U] by deferring logic to the internal ImplW func.
 func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error)
 ```
+</details>
