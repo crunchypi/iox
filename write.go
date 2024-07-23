@@ -19,6 +19,15 @@ type Writer[T any] interface {
 
 // WriterImpl lets you implement Writer with a function. Place it into "impl"
 // and it will be called by the "Write" method.
+// Example:
+//
+//  func myWriter() Writer[int] {
+//      return WriterImpl[int]{
+//          Impl: func(ctx context.Context, v int) error {
+//              // Your implementation.   
+//          },
+//      }
+//  }
 type WriterImpl[T any] struct {
 	Impl func(context.Context, T) error
 }
@@ -78,24 +87,25 @@ func (impl WriteCloserImpl[T]) Write(ctx context.Context, v T) (err error) {
 
 // NewWriterFromValues creates a Writer (vals) which writes into 'w'.
 // Nil 'w' returns an empty non-nil Writer; nil 'f' uses json.NewEncoder.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/5arKiC4ZxRt
+//
 // Example:
+//	    // Defining our io.Writer to rcv the data + encoding method.
+//	    b := bytes.NewBuffer(nil)
+//	    f := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+//	    w := NewWriterFromValues[int](b)(f)
 //
-//	// Defining our io.Writer to rcv the data + encoding method.
-//	b := bytes.NewBuffer(nil)
-//	f := func(w io.Writer) Encoder { return json.NewEncoder(w) }
-//	w := NewWriterFromValues[int](b)(f)
+//	    // Write values, they are encoded and passed to 'b'. Err handling ignored.
+//	    w.Write(nil, 2)
 //
-//	// Write values, they are encoded and passed to 'b'. Err handling ignored.
-//	w.Write(nil, 2)
-//	w.Write(nil, 3)
+//	    // We'll use these to read what's in 'b'.
+//	    dec := json.NewDecoder(b)
+//	    val := 0
 //
-//	// We'll use these to read what's in 'b'.
-//	dec := json.NewDecoder(b)
-//	val := 0
-//
-//	t.Log(dec.Decode(&val), val) // <nil> 2
-//	t.Log(dec.Decode(&val), val) // <nil> 3
-//	t.Log(dec.Decode(&val), val) // EOF 3
+//	    t.Log(dec.Decode(&val), val) // <nil> 2
+//	    t.Log(dec.Decode(&val), val) // EOF 2
 func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T] {
 	return func(f func(io.Writer) Encoder) Writer[T] {
 		if w == nil {
@@ -127,25 +137,28 @@ func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T] {
 
 // NewWriterFromBytes creates an io.Writer (bytes) which writes into 'w'.
 // Nil 'w' returns an empty non-nil Writer; nil 'f' uses json.NewDecoder.
-// Example:
 //
-//	// Writes simply logs values.
-//	vw := WriterImpl[int]{
-//		Impl: func(ctx context.Context, v int) error {
-//			t.Log(v)
-//			return nil
-//		},
-//	}
+//  Example (interactive):
+//      - https://go.dev/play/p/yhaEWVIMoxw
 //
-//	// io.Writer
-//	bw := NewWriterFromBytes(vw)(
-//		func(r io.Reader) Decoder {
-//			return json.NewDecoder(r)
-//		},
-//	)
+//  Example:
+//	    // Writes simply logs values.
+//	    vw := WriterImpl[int]{
+//	    	Impl: func(ctx context.Context, v int) error {
+//	    		t.Log(v)
+//	    		return nil
+//	    	},
+//	    }
 //
-//	// Logs "9"
-//	json.NewEncoder(bw).Encode(9)
+//	    // io.Writer
+//	    bw := NewWriterFromBytes(vw)(
+//	    	func(r io.Reader) Decoder {
+//	    		return json.NewDecoder(r)
+//	    	},
+//	    )
+//
+//	    // Logs "9"
+//	    json.NewEncoder(bw).Encode(9)
 func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer {
 	return func(f decoderFn) io.Writer {
 		if w == nil {

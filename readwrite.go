@@ -102,6 +102,20 @@ func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error
 // NewReadWriterFrom returns a ReadWriter[T] which writes into- and read from
 // an internal buffer. The buffer is initially populated with the given values.
 // The buffer acts like a stack, and a read while the buf is empty returns io.EOF.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/tusGzivubiI
+//
+//  Example:
+//      ctx := context.Background()
+//      
+//      rw := iox.NewReadWriterFrom("test1")
+//      fmt.Println(rw.Read(ctx))
+//      fmt.Println(rw.Read(ctx)) // <-- io.EOF
+//      
+//      rw.Write(ctx, "test2")
+//      fmt.Println(rw.Read(ctx))
+//      fmt.Println(rw.Read(ctx)) // <-- io.EOF
 func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T] {
 	buf := make([]T, len(vs))
 	copy(buf, vs)
