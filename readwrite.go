@@ -15,10 +15,8 @@ type ReadWriter[T, U any] interface {
 	Writer[U]
 }
 
-// ReadWriterImpl implements ReadWriter[T, U] with its Read and Write methods,
-// their logic is deferred to the internal ImplR and ImplW fields (funcs).
-// This is for convenience, as you may use a functional implementation of
-// ReadWriter without defining a new type (that's done for you here).
+// ReadWriterImpl lets you implement ReadWriter with functions. This is
+// equivalent to using ReaderImpl and WriterImpl combined (see docs).
 type ReadWriterImpl[T, U any] struct {
 	ImplR func(context.Context) (T, error)
 	ImplW func(context.Context, U) error
@@ -57,10 +55,8 @@ type ReadWriteCloser[T, U any] interface {
 	Writer[U]
 }
 
-// ReadWriteCloserImpl implements ReadWriteCloser with its methods Read, Write
-// and Close -- the logic of those funcs is deferred to ImplR (Read), ImplW
-// (Write), and ImplC (Close). This is for convenience, as you may use a
-// functional implementation of the interface without defining a new type.
+// ReadWriteCloserImpl lets you implement ReadWriteCloser with functions.
+// This is similar to ReadWriterImpl but lets you implement io.Closer as well.
 type ReadWriteCloserImpl[T, U any] struct {
 	ImplC func() error
 	ImplR func(context.Context) (T, error)
@@ -106,6 +102,20 @@ func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error
 // NewReadWriterFrom returns a ReadWriter[T] which writes into- and read from
 // an internal buffer. The buffer is initially populated with the given values.
 // The buffer acts like a stack, and a read while the buf is empty returns io.EOF.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/tusGzivubiI
+//
+//  Example:
+//      ctx := context.Background()
+//      
+//      rw := iox.NewReadWriterFrom("test1")
+//      fmt.Println(rw.Read(ctx))
+//      fmt.Println(rw.Read(ctx)) // <-- io.EOF
+//      
+//      rw.Write(ctx, "test2")
+//      fmt.Println(rw.Read(ctx))
+//      fmt.Println(rw.Read(ctx)) // <-- io.EOF
 func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T] {
 	buf := make([]T, len(vs))
 	copy(buf, vs)
