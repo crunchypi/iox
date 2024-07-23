@@ -17,9 +17,8 @@ type Writer[T any] interface {
 	Write(context.Context, T) error
 }
 
-// WriterImpl implements Writer with its Write method by deferring to 'Impl'.
-// This is for convenience, as you may use a functional implementation of Writer
-// without defining a new type (that's done for you here).
+// WriterImpl lets you implement Writer with a function. Place it into "impl"
+// and it will be called by the "Write" method.
 type WriterImpl[T any] struct {
 	Impl func(context.Context, T) error
 }
@@ -45,9 +44,8 @@ type WriteCloser[T any] interface {
 	Writer[T]
 }
 
-// WriteCloserImpl implements Writer and io.Closer with its methods by deferring
-// to ImplC (closer) and ImplW (writer). This is for convenience, as you may use
-// a functional implementation of the interfaces without defining a new type.
+// WriteCloserImpl lets you implement WriteCloser with functions. This is
+// similar to WriterImpl but lets you implement io.Closer as well.
 type WriteCloserImpl[T any] struct {
 	ImplC func() error
 	ImplW func(context.Context, T) error
@@ -78,9 +76,8 @@ func (impl WriteCloserImpl[T]) Write(ctx context.Context, v T) (err error) {
 // Constructors.
 // -----------------------------------------------------------------------------
 
-// NewWriterFromValues returns a Writer which accepts values, encodes them
-// using the given encoder, and then writes them to 'w'. If 'w' is nil, an empty
-// Writer is returned; if 'f' is nil, the encoder is set to json.NewEncoder.
+// NewWriterFromValues creates a Writer (vals) which writes into 'w'.
+// Nil 'w' returns an empty non-nil Writer; nil 'f' uses json.NewEncoder.
 // Example:
 //
 //	// Defining our io.Writer to rcv the data + encoding method.
@@ -128,9 +125,8 @@ func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T] {
 	}
 }
 
-// NewWriterFromBytes returns an io.Writer which accepts bytes, decodes them
-// using the given decoder, and then writes them to 'w'. If 'w' is nil, an emtpy
-// io.Writer is returned; if 'f' is nil, the decoder is set to json.NewDecoder.
+// NewWriterFromBytes creates an io.Writer (bytes) which writes into 'w'.
+// Nil 'w' returns an empty non-nil Writer; nil 'f' uses json.NewDecoder.
 // Example:
 //
 //	// Writes simply logs values.

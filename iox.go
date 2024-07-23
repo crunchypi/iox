@@ -1,3 +1,11 @@
+// iox is a generic extension of package io. See github for an overview:
+// * https://github.com/crunchypi/iox
+//
+// iox is designed to be as simple as possible and does the following:
+//   - Covers the most essential interfaces, Reader, Writer and variations.
+//   - Defines interfaces for encoding and decoding.
+//   - Inherits errors, namely io.EOF and io.ErrClosedPipe
+//   - Defines converters for interoperability with io.
 package iox
 
 import "io"
@@ -13,9 +21,8 @@ type Encoder interface {
 	Encode(e any) error
 }
 
-// EncoderImpl implements Encoder with it's Encode method by deferring to 'Impl'.
-// This is for convenience, as you may use functional implementation of Encoder
-// without defining a new type (that's done for you here).
+// EncoderImpl lets you implement Encoder with a function. Place it into "Impl"
+// and it will be called by the "Encode" method.
 type EncoderImpl struct {
 	Impl func(e any) error
 }
@@ -41,9 +48,8 @@ type Decoder interface {
 	Decode(e any) error
 }
 
-// DecoderImpl implements Decoder with it's Decode method by deferring to 'Impl'.
-// This is for convenience, as you may use functional implementation of Decoder
-// without defining a new type (that's done for you here).
+// DecoderImpl lets you implement Decoder with a function. Place it into "Impl"
+// and it will be called by the "Decode" method.
 type DecoderImpl struct {
 	Impl func(d any) error
 }
