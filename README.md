@@ -1,30 +1,22 @@
 # iox
-Generic variant of Go's io pkg
+Generic extension of Go's io pkg.
 
 Index 
 - [Core interfaces](#core-interfaces)
+- [Errors](#errors)
 - [Constructors/Factories](#constructorsfactories)
-- [Errors](errors)
 - [Impl pattern](#impl-pattern)
 
 
 
 ## Core interfaces
+Core interfaces are the `iox.Reader` and `iox.Writer`listed below. They mirror `io.Reader` and `io.Writer`but differ in that they work with generic values instead. An extra addition is the use of `context.Context`, since io often involves program bounds (also it gives some added flexibility).
 
 #### Reader
 ```go
 // Reader reads T, it is intended as a generic variant of io.Reader.
 type Reader[T any] interface {
 	Read(context.Context) (T, error)
-}
-```
-
-#### ReadCloser
-```go
-// ReadCloser groups Reader with io.Closer.
-type ReadCloser[T any] interface {
-	io.Closer
-	Reader[T]
 }
 ```
 
@@ -36,26 +28,41 @@ type Writer[T any] interface {
 }
 ```
 
-#### WriteCloser
+#### Permutations
+As with the `io` package from the standard library, `iox` readers and writers can be combined with eachother and `io.Closer`. The full set of interfaces can be viewed by clicking belod.
+
+<details>
+<summary> Show all interfaces </summary>
+
 ```go
+// Reader reads T, it is intended as a generic variant of io.Reader.
+type Reader[T any] interface {
+	Read(context.Context) (T, error)
+}
+
+// ReadCloser groups Reader with io.Closer.
+type ReadCloser[T any] interface {
+	io.Closer
+	Reader[T]
+}
+
+// Writer writes T, it is intended as a generic variant of io.Writer.
+type Writer[T any] interface {
+	Write(context.Context, T) error
+}
+
 // WriteCloser groups Writer with io.Closer.
 type WriteCloser[T any] interface {
 	io.Closer
 	Writer[T]
 }
-```
 
-#### ReadWriter
-```go
 // ReadWriter groups Reader[T] and Writer[U].
 type ReadWriter[T, U any] interface {
 	Reader[T]
 	Writer[U]
 }
-```
 
-#### ReadWriteCloser
-```go
 // ReadWriteCloser groups Reader[T] and Writer[U] with io.Closer.
 type ReadWriteCloser[T, U any] interface {
 	io.Closer
@@ -63,10 +70,32 @@ type ReadWriteCloser[T, U any] interface {
 	Writer[U]
 }
 ```
+</details>
+
+
+
+## Errors
+This package does *not* define any new errors, it inherits them from the `io` package in the standard library.
+```go
+var io.EOF              // Used by iox.Reader and iox.Decoder
+var io.ErrClosedPipe    // Used by iox.Writer and iox.Encoder
+```
 
 
 
 ## Constructors/Factories
+
+Here's an overview, all links go to the Go playground.
+
+- [`func NewReaderFrom[T any](vs ...T) Reader[T]`](https://go.dev/play/p/bP73PU1mQvf)
+- [`func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T]`](https://go.dev/play/p/ltcwrgk41Gw)
+- [`func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader`](https://go.dev/play/p/e9Sp5od3iE6)
+- [`func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T]`](https://go.dev/play/p/5arKiC4ZxRt)
+- [`func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer`](https://go.dev/play/p/yhaEWVIMoxw)
+- [`func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]`](https://go.dev/play/p/tusGzivubiI)
+
+<details>
+<summary> Alternatively, you may see signatures and docs by clicking here</summary>
 
 
 ```go
@@ -101,13 +130,10 @@ func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T]
 ```
 
 ```go
-// NewReaderFromValues creates an io.Reader from a Reader and Encoder.
-// It simply reads values from 'r', encodes them, and passes them along to the
-// caller. As such, when decoding values from the returned io.Reader one should
-// use a decoder which matches the encoder passed here. If 'r' is nil, an
-// empty (not nil) io.Reader is returned; if 'f' is nil, the encoder is set to
-// json.NewEncoder. 
-func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
+// NewWriterFromBytes returns an io.Writer which accepts bytes, decodes them
+// using the given decoder, and then writes them to 'w'. If 'w' is nil, an emtpy
+// io.Writer is returned; if 'f' is nil, the decoder is set to json.NewDecoder.
+func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer 
 ```
 
 ```go
@@ -116,18 +142,33 @@ func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader
 // The buffer acts like a stack, and a read while the buf is empty returns io.EOF.
 func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]
 ```
-
-
-
-## Errors
-This package inherits errors from the `io` package and only uses:
-- `io.EOF`: Used with `iox.Reader[T]` and `iox.Decoder`
-- `io.ErrClosedPipe`: Used with `iox.Writer[T]` and `iox.Encoder`
-
+</details>
 
 
 ## Impl pattern
-The impl pattern allows you to implement an interface in a functional way, avoiding the tedium of defining structs which implement small interfaces. You simply define the function and place it inside an impl struct.
+The impl pattern allows you to implement an interface in a functional way, avoiding the tedium of defining structs which implement small interfaces. You simply define the function and place it inside an impl struct. There is an impl struct for all [Core interfaces](#core-interfaces), but I'll show the one associated with `iox.Reader` to make it clear:
+
+```go
+// Here's how it may be used to e.g implement a Reader mapper:
+//	https://go.dev/play/p/JQY_1vQZ6pz.
+type ReaderImpl[T any] struct {
+	Impl func(context.Context) (T, error)
+}
+
+func (impl ReaderImpl[T]) Read(ctx context.Context) (r T, err error) {
+	if impl.Impl == nil {
+		err = io.EOF
+		return
+	}
+
+	return impl.Impl(ctx)
+}
+```
+
+With this pattern you may easily define e.g a mapper func for a `iox.Reader`, e.g [this go playground](https://go.dev/play/p/JQY_1vQZ6pz)
+
+<details>
+<summary>As mentioned, an impl struct exists for all core interfaces, you may see them by clicking here</summary>
 
 #### Impl for Reader
 ```go
@@ -218,3 +259,4 @@ func (impl ReadWriteCloserImpl[T, U]) Read(ctx context.Context) (r T, err error)
 // Write implements Writer[U] by deferring logic to the internal ImplW func.
 func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error)
 ```
+</details>

@@ -16,9 +16,17 @@ type Reader[T any] interface {
 	Read(context.Context) (T, error)
 }
 
-// ReaderImpl implements Reader with it's Read method by deferring to 'Impl'.
-// This is for convenience, as you may use a functional implementation of Reader
-// without defining a new type (that's done for you here).
+// ReaderImpl lets you implement Reader with a function. Place it into "impl"
+// and it will be called by the "Read" method.
+// Example:
+//
+//  func myReader() Reader[int] {
+//      return ReaderImpl[int]{
+//          Impl: func(ctx context.Context) (int, error) {
+//              // Your implementation.
+//          },
+//      }
+//  }
 type ReaderImpl[T any] struct {
 	Impl func(context.Context) (T, error)
 }
@@ -44,9 +52,8 @@ type ReadCloser[T any] interface {
 	Reader[T]
 }
 
-// ReadCloserImpl implements Reader and io.Closer with it's methods by deferring
-// to ImplC (closer) and ImplR (reader). This is for convenience, as you may use
-// a functional implementation of the interfaces wihout defining a new type.
+// ReadCloserImpl lets you implement ReadCloser with functions. This is similar
+// to ReaderImpl but lets you implement io.Closer as well.
 type ReadCloserImpl[T any] struct {
 	ImplC func() error
 	ImplR func(context.Context) (T, error)
@@ -93,28 +100,27 @@ func NewReaderFrom[T any](vs ...T) Reader[T] {
 	}
 }
 
-// NewReaderFromBytes creates a new T reader from an io.Reader and Decoder.
-// It simply reads bytes from 'r', decodes them, and passes them along to the
-// caller. As such, the decoder must match the encoder used to create the bytes.
-// If 'r' is nil, an empty Reader is returned; if 'f' is nil, the decoder is set
-// to json.NewDecoder. Example:
+// NewReaderFromBytes converts an io.Reader (bytes) into a iox.Reader (values).
+// Nil 'r' returns an empty non-nil Reader; nil 'f' uses json.NewDecoder.
 //
-//	// Used as io.Reader
-//	b := bytes.NewBuffer(nil)
+//  Example (interactive):
+//      - https://go.dev/play/p/ltcwrgk41Gw
 //
-//	// Using json encoder, so the decoder has to be json in NewReaderFromBytes
-//	json.NewEncoder(b).Encode("test1")
-//	json.NewEncoder(b).Encode("test2")
-//
-//	r := NewReaderFromBytes[string](b)(
-//		func(r io.Reader) Decoder {
-//			return json.NewDecoder(r)
-//		},
-//	)
-//
-//	t.Log(r.Read(context.Background())) // "test1" <nil>
-//	t.Log(r.Read(context.Background())) // "test2" <nil>
-//	t.Log(r.Read(context.Background())) // "", io.EOF
+//  Example:
+//  	// Used as io.Reader
+//  	b := bytes.NewBuffer(nil)
+//  
+//  	// Using json encoder, so the decoder has to be json in NewReaderFromBytes
+//  	json.NewEncoder(b).Encode("test1")
+//  
+//  	r := NewReaderFromBytes[string](b)(
+//  		func(r io.Reader) Decoder {
+//  			return json.NewDecoder(r)
+//  		},
+//  	)
+//  
+//  	t.Log(r.Read(context.Background())) // "test1" <nil>
+//  	t.Log(r.Read(context.Background())) // "", io.EOF
 func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T] {
 	return func(f func(io.Reader) Decoder) Reader[T] {
 		if r == nil {
@@ -137,27 +143,26 @@ func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T] {
 	}
 }
 
-// NewReaderFromValues creates an io.Reader from a Reader and Encoder.
-// It simply reads values from 'r', encodes them, and passes them along to the
-// caller. As such, when decoding values from the returned io.Reader one should
-// use a decoder which matches the encoder passed here. If 'r' is nil, an
-// empty (not nil) io.Reader is returned; if 'f' is nil, the encoder is set to
-// json.NewEncoder. Example:
+// NewReaderFromValues converts an iox.Reader (values) into an io.Reader (bytes).
+// Nil 'r' returns an empty non-nil Reader; nil 'f' uses json.NewEncoder.
 //
-//	// Create the io.Reader from value Reader.
-//	r := NewReaderFromValues(NewReaderFrom("test1", "test2"))(
-//	    func(w io.Writer) Encoder {
-//	        return json.NewEncoder(w)
-//	    },
-//	)
+//  Example (interactive):
+//      - https://go.dev/play/p/e9Sp5od3iE6
 //
-//	// Instantly pass it to a decoder just so we may log out the values.
-//	dec := json.NewDecoder(r)
-//	val := ""
+//  Example:
+//	    // Create the io.Reader from value Reader.
+//	    r := NewReaderFromValues(NewReaderFrom("test1"))(
+//	        func(w io.Writer) Encoder {
+//	            return json.NewEncoder(w)
+//	        },
+//	    )
 //
-//	t.Log(dec.Decode(&val), val) // <nil>, "test1"
-//	t.Log(dec.Decode(&val), val) // <nil>, "test2"
-//	t.Log(dec.Decode(&val), val) // EOF, "test2" <--- val is unchanged.
+//	    // Instantly pass it to a decoder just so we may log out the values.
+//	    dec := json.NewDecoder(r)
+//	    val := ""
+//
+//	    t.Log(dec.Decode(&val), val) // <nil>, "test1"
+//	    t.Log(dec.Decode(&val), val) // EOF, "test1" <--- val is unchanged.
 func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader {
 	return func(f func(io.Writer) Encoder) io.Reader {
 		if r == nil {
