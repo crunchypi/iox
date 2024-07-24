@@ -250,3 +250,58 @@ func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T] {
 		},
 	}
 }
+
+// NewReaderWithUnbatching returns a reader of T from a reader of []T.
+// Note that there is some internal buffering, so you may want to use this
+// with caution as an unread buffer may cause value loss.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/yDpf1QOhBS-
+//
+//  Example:
+//      sr := NewReaderFrom([]int{1, 2}, []int{3})
+//      vr := NewReaderWithUnbatching(sr)
+//      
+//      t.Log(vr.Read(nil)) // 1, nil
+//      t.Log(vr.Read(nil)) // 2, nil
+//      t.Log(vr.Read(nil)) // 3, nil
+//      t.Log(vr.Read(nil)) // 0, io.EOF
+func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T] {
+	if r == nil {
+		return ReaderImpl[T]{}
+	}
+
+	var errCache error
+	var buf []T
+	return ReaderImpl[T]{
+		Impl: func(ctx context.Context) (val T, err error) {
+			if len(buf) > 0 {
+				val = buf[0]
+				buf = buf[1:]
+				return
+			}
+
+			if errCache != nil {
+				err = errCache
+				return
+			}
+
+			buf, err = r.Read(ctx)
+
+			switch {
+			case len(buf) == 0 && err != nil:
+				return val, err
+			case len(buf) == 0 && err == nil:
+				return val, io.EOF
+			case len(buf) != 0 && err != nil:
+				errCache = err
+				err = nil
+			case len(buf) != 0 && err == nil:
+			}
+
+			val = buf[0]
+			buf = buf[1:]
+			return
+		},
+	}
+}
