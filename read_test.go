@@ -215,3 +215,37 @@ func TestNewReaderFromValuesWithEncodeError(t *testing.T) {
 	have := err.Error()
 	assertEq("err", want, have, func(s string) { t.Fatal(s) })
 }
+
+// -----------------------------------------------------------------------------
+// Modifiers.
+// -----------------------------------------------------------------------------
+
+func TestNewReaderWithBatchingIdeal(t *testing.T) {
+	vs := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	vr := NewReaderFrom(vs...)
+	sr := NewReaderWithBatching(vr, 0)
+
+	s := []int{}
+	err := *new(error)
+
+	s, err = sr.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", vs[0:8], s, func(s string) { t.Fatal(s) })
+
+	s, err = sr.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", vs[8:], s, func(s string) { t.Fatal(s) })
+
+	s, err = sr.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", []int{}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithBatchingWithNilReader(t *testing.T) {
+	sr := NewReaderWithBatching[int](nil, 0)
+
+	s, err := sr.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", *new([]int), s, func(s string) { t.Fatal(s) })
+}
+

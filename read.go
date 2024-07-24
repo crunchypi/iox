@@ -194,3 +194,59 @@ func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader {
 		}
 	}
 }
+
+
+// -----------------------------------------------------------------------------
+// Modifiers.
+// -----------------------------------------------------------------------------
+
+// NewReaderWithBatching returns a reader which batches 'r' into slices with
+// the given size. Nil 'r' returns an empty non-nil Reader, size <= 0 defaults
+// to 8. Note, the last []T before an err (e.g io.EOF) may be smaller than 'size'.
+//
+//	Example (interactive):
+//	    - https://go.dev/play/p/SnGdMkV9PNE
+//
+//  Example:
+//      vr := NewReadWriterFrom(1,2,3)
+//      sr := NewReaderWithBatching(vr, 2)
+//      
+//      t.Log(sr.Read(nil)) // [1, 2], nil
+//      t.Log(sr.Read(nil)) // [3], nil
+//      t.Log(sr.Read(nil)) // [], io.EOF
+func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T] {
+	if r == nil {
+		return ReaderImpl[[]T]{}
+	}
+
+	if size <= 0 {
+		size = 8
+	}
+
+	var errCache error
+	return ReaderImpl[[]T]{
+		Impl: func(ctx context.Context) (s []T, err error) {
+			s = make([]T, 0, size)
+			if errCache != nil {
+				return s, errCache
+			}
+
+			var v T
+			for i := 0; i < size; i++ {
+				v, errCache = r.Read(ctx)
+				if errCache != nil {
+					break
+
+				}
+
+				s = append(s, v)
+			}
+
+			if errCache != nil && len(s) == 0 {
+				return s, errCache
+			}
+
+			return s, err
+		},
+	}
+}
