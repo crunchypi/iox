@@ -23,15 +23,16 @@ type Encoder interface {
 
 // EncoderImpl lets you implement Encoder with a function. Place it into "Impl"
 // and it will be called by the "Encode" method.
+//
 // Example:
 //
-//  func myEncoder() Encoder {
-//      return EncoderImpl{
-//          Impl: func(e any) error {
-//              // Your code.
-//          }
-//      }
-//  }
+//	func myEncoder() Encoder {
+//	    return EncoderImpl{
+//	        Impl: func(e any) error {
+//	            // Your code.
+//	        }
+//	    }
+//	}
 type EncoderImpl struct {
 	Impl func(e any) error
 }
@@ -59,15 +60,16 @@ type Decoder interface {
 
 // DecoderImpl lets you implement Decoder with a function. Place it into "Impl"
 // and it will be called by the "Decode" method.
+//
 // Example:
 //
-//  func myDecoder() Decoder {
-//      return DecoderImpl{
-//          Impl: func(d any) error {
-//              // Your code.
-//          }
-//      }
-//  }
+//	func myDecoder() Decoder {
+//	    return DecoderImpl{
+//	        Impl: func(d any) error {
+//	            // Your code.
+//	        }
+//	    }
+//	}
 type DecoderImpl struct {
 	Impl func(d any) error
 }

@@ -18,15 +18,16 @@ type Reader[T any] interface {
 
 // ReaderImpl lets you implement Reader with a function. Place it into "impl"
 // and it will be called by the "Read" method.
+//
 // Example:
 //
-//  func myReader() Reader[int] {
-//      return ReaderImpl[int]{
-//          Impl: func(ctx context.Context) (int, error) {
-//              // Your implementation.
-//          },
-//      }
-//  }
+//	func myReader() Reader[int] {
+//	    return ReaderImpl[int]{
+//	        Impl: func(ctx context.Context) (int, error) {
+//	            // Your implementation.
+//	        },
+//	    }
+//	}
 type ReaderImpl[T any] struct {
 	Impl func(context.Context) (T, error)
 }
@@ -103,24 +104,25 @@ func NewReaderFrom[T any](vs ...T) Reader[T] {
 // NewReaderFromBytes converts an io.Reader (bytes) into a iox.Reader (values).
 // Nil 'r' returns an empty non-nil Reader; nil 'f' uses json.NewDecoder.
 //
-//  Example (interactive):
-//      - https://go.dev/play/p/ltcwrgk41Gw
+// Example (interactive):
+//   - https://go.dev/play/p/ltcwrgk41Gw
 //
-//  Example:
-//  	// Used as io.Reader
-//  	b := bytes.NewBuffer(nil)
-//  
-//  	// Using json encoder, so the decoder has to be json in NewReaderFromBytes
-//  	json.NewEncoder(b).Encode("test1")
-//  
-//  	r := NewReaderFromBytes[string](b)(
-//  		func(r io.Reader) Decoder {
-//  			return json.NewDecoder(r)
-//  		},
-//  	)
-//  
-//  	t.Log(r.Read(context.Background())) // "test1" <nil>
-//  	t.Log(r.Read(context.Background())) // "", io.EOF
+// Example:
+//
+//	// Used as io.Reader
+//	b := bytes.NewBuffer(nil)
+//
+//	// Using json encoder, so the decoder has to be json in NewReaderFromBytes
+//	json.NewEncoder(b).Encode("test1")
+//
+//	r := NewReaderFromBytes[string](b)(
+//		func(r io.Reader) Decoder {
+//			return json.NewDecoder(r)
+//		},
+//	)
+//
+//	t.Log(r.Read(context.Background())) // "test1" <nil>
+//	t.Log(r.Read(context.Background())) // "", io.EOF
 func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T] {
 	return func(f func(io.Reader) Decoder) Reader[T] {
 		if r == nil {
@@ -146,23 +148,24 @@ func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T] {
 // NewReaderFromValues converts an iox.Reader (values) into an io.Reader (bytes).
 // Nil 'r' returns an empty non-nil Reader; nil 'f' uses json.NewEncoder.
 //
-//  Example (interactive):
-//      - https://go.dev/play/p/e9Sp5od3iE6
+// Example (interactive):
+//   - https://go.dev/play/p/e9Sp5od3iE6
 //
-//  Example:
-//	    // Create the io.Reader from value Reader.
-//	    r := NewReaderFromValues(NewReaderFrom("test1"))(
-//	        func(w io.Writer) Encoder {
-//	            return json.NewEncoder(w)
-//	        },
-//	    )
+// Example:
 //
-//	    // Instantly pass it to a decoder just so we may log out the values.
-//	    dec := json.NewDecoder(r)
-//	    val := ""
+//	// Create the io.Reader from value Reader.
+//	r := NewReaderFromValues(NewReaderFrom("test1"))(
+//	    func(w io.Writer) Encoder {
+//	        return json.NewEncoder(w)
+//	    },
+//	)
 //
-//	    t.Log(dec.Decode(&val), val) // <nil>, "test1"
-//	    t.Log(dec.Decode(&val), val) // EOF, "test1" <--- val is unchanged.
+//	// Instantly pass it to a decoder just so we may log out the values.
+//	dec := json.NewDecoder(r)
+//	val := ""
+//
+//	t.Log(dec.Decode(&val), val) // <nil>, "test1"
+//	t.Log(dec.Decode(&val), val) // EOF, "test1" <--- val is unchanged.
 func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader {
 	return func(f func(io.Writer) Encoder) io.Reader {
 		if r == nil {
@@ -192,5 +195,117 @@ func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader {
 				return b.Read(p)
 			},
 		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Modifiers.
+// -----------------------------------------------------------------------------
+
+// NewReaderWithBatching returns a reader which batches 'r' into slices with
+// the given size. Nil 'r' returns an empty non-nil Reader, size <= 0 defaults
+// to 8. Note, the last []T before an err (e.g io.EOF) may be smaller than 'size'.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/SnGdMkV9PNE
+//
+// Example:
+//
+//	vr := NewReadWriterFrom(1,2,3)
+//	sr := NewReaderWithBatching(vr, 2)
+//
+//	t.Log(sr.Read(nil)) // [1, 2], nil
+//	t.Log(sr.Read(nil)) // [3], nil
+//	t.Log(sr.Read(nil)) // [], io.EOF
+func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T] {
+	if r == nil {
+		return ReaderImpl[[]T]{}
+	}
+
+	if size <= 0 {
+		size = 8
+	}
+
+	var errCache error
+	return ReaderImpl[[]T]{
+		Impl: func(ctx context.Context) (s []T, err error) {
+			s = make([]T, 0, size)
+			if errCache != nil {
+				return s, errCache
+			}
+
+			var v T
+			for i := 0; i < size; i++ {
+				v, errCache = r.Read(ctx)
+				if errCache != nil {
+					break
+
+				}
+
+				s = append(s, v)
+			}
+
+			if errCache != nil && len(s) == 0 {
+				return s, errCache
+			}
+
+			return s, err
+		},
+	}
+}
+
+// NewReaderWithUnbatching returns a reader of T from a reader of []T.
+// Note that there is some internal buffering, so you may want to use this
+// with caution as an unread buffer may cause value loss.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/yDpf1QOhBS-
+//
+// Example:
+//
+//	sr := NewReaderFrom([]int{1, 2}, []int{3})
+//	vr := NewReaderWithUnbatching(sr)
+//
+//	t.Log(vr.Read(nil)) // 1, nil
+//	t.Log(vr.Read(nil)) // 2, nil
+//	t.Log(vr.Read(nil)) // 3, nil
+//	t.Log(vr.Read(nil)) // 0, io.EOF
+func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T] {
+	if r == nil {
+		return ReaderImpl[T]{}
+	}
+
+	var errCache error
+	var buf []T
+	return ReaderImpl[T]{
+		Impl: func(ctx context.Context) (val T, err error) {
+			if len(buf) > 0 {
+				val = buf[0]
+				buf = buf[1:]
+				return
+			}
+
+			if errCache != nil {
+				err = errCache
+				return
+			}
+
+			buf, err = r.Read(ctx)
+
+			switch {
+			case len(buf) == 0 && err != nil:
+				return val, err
+			case len(buf) == 0 && err == nil:
+				return val, io.EOF
+			case len(buf) != 0 && err != nil:
+				errCache = err
+				err = nil
+			case len(buf) != 0 && err == nil:
+			}
+
+			val = buf[0]
+			buf = buf[1:]
+			return
+		},
 	}
 }
