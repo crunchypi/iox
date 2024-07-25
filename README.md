@@ -273,3 +273,6 @@ Some helpers are defined for convenience. Their signature are listed below (all 
 - [`func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T]`](
 	https://go.dev/play/p/yDpf1QOhBS-
 )
+- [`func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T]`](
+	https://go.dev/play/p/0O4QR_en9h1
+)
