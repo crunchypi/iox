@@ -241,3 +241,24 @@ func TestWriterWithBatchingWithNilWriter(t *testing.T) {
 	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
 }
 
+func TestWriterWithUnbatchingIdeal(t *testing.T) {
+	s := make([]int, 0, 4)
+	w := NewWriterWithUnbatching(newSliceWriter(&s))
+
+	assertEq("err", *new(error), w.Write(nil, []int{1, 2}), func(s string) { t.Fatal(s) })
+	assertEq("val", []int{1, 2}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestWriterWithUnbatchingWithNilReader(t *testing.T) {
+	w := NewWriterWithUnbatching[int](nil)
+	assertEq("err", io.EOF, w.Write(nil, []int{1, 2}), func(s string) { t.Fatal(s) })
+}
+
+func TestWriterWithUnbatchingWithCustomErrr(t *testing.T) {
+	vw := WriterImpl[int]{}
+	vw.Impl = func(ctx context.Context, i int) error { return io.ErrClosedPipe }
+
+	sw := NewWriterWithUnbatching(vw)
+	err := sw.Write(nil, []int{1, 2})
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+}

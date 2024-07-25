@@ -242,3 +242,38 @@ func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T] {
 		},
 	}
 }
+
+// NewWriterWithUnbatching returns a Writer which accepts []T on a Write call,
+// then iterates through the slice and writes each value to 'w'.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/Z31KN0C2Q-Z
+//
+//  Example:
+//      // Writes which logs values through 't.Log'.
+//	    logWriter := WriterImpl[int]{}
+//	    logWriter.Impl = func(_ context.Context, v int) error { t.Log(v); return nil }
+//
+//	    w := NewWriterWithUnbatching(logWriter)
+//	    w.Write(nil, []int{1, 2})
+//	    // ^ logWriter logs the following lines:
+//	    //  1
+//	    //  2
+func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T] {
+	if w == nil {
+		return WriterImpl[[]T]{}
+	}
+
+	return WriterImpl[[]T]{
+		Impl: func(ctx context.Context, vs []T) (err error) {
+			for _, v := range vs {
+				err = w.Write(ctx, v)
+				if err != nil {
+					return
+				}
+			}
+
+			return
+		},
+	}
+}
