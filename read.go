@@ -194,3 +194,114 @@ func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader {
 		}
 	}
 }
+
+
+// -----------------------------------------------------------------------------
+// Modifiers.
+// -----------------------------------------------------------------------------
+
+// NewReaderWithBatching returns a reader which batches 'r' into slices with
+// the given size. Nil 'r' returns an empty non-nil Reader, size <= 0 defaults
+// to 8. Note, the last []T before an err (e.g io.EOF) may be smaller than 'size'.
+//
+//	Example (interactive):
+//	    - https://go.dev/play/p/SnGdMkV9PNE
+//
+//  Example:
+//      vr := NewReadWriterFrom(1,2,3)
+//      sr := NewReaderWithBatching(vr, 2)
+//      
+//      t.Log(sr.Read(nil)) // [1, 2], nil
+//      t.Log(sr.Read(nil)) // [3], nil
+//      t.Log(sr.Read(nil)) // [], io.EOF
+func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T] {
+	if r == nil {
+		return ReaderImpl[[]T]{}
+	}
+
+	if size <= 0 {
+		size = 8
+	}
+
+	var errCache error
+	return ReaderImpl[[]T]{
+		Impl: func(ctx context.Context) (s []T, err error) {
+			s = make([]T, 0, size)
+			if errCache != nil {
+				return s, errCache
+			}
+
+			var v T
+			for i := 0; i < size; i++ {
+				v, errCache = r.Read(ctx)
+				if errCache != nil {
+					break
+
+				}
+
+				s = append(s, v)
+			}
+
+			if errCache != nil && len(s) == 0 {
+				return s, errCache
+			}
+
+			return s, err
+		},
+	}
+}
+
+// NewReaderWithUnbatching returns a reader of T from a reader of []T.
+// Note that there is some internal buffering, so you may want to use this
+// with caution as an unread buffer may cause value loss.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/yDpf1QOhBS-
+//
+//  Example:
+//      sr := NewReaderFrom([]int{1, 2}, []int{3})
+//      vr := NewReaderWithUnbatching(sr)
+//      
+//      t.Log(vr.Read(nil)) // 1, nil
+//      t.Log(vr.Read(nil)) // 2, nil
+//      t.Log(vr.Read(nil)) // 3, nil
+//      t.Log(vr.Read(nil)) // 0, io.EOF
+func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T] {
+	if r == nil {
+		return ReaderImpl[T]{}
+	}
+
+	var errCache error
+	var buf []T
+	return ReaderImpl[T]{
+		Impl: func(ctx context.Context) (val T, err error) {
+			if len(buf) > 0 {
+				val = buf[0]
+				buf = buf[1:]
+				return
+			}
+
+			if errCache != nil {
+				err = errCache
+				return
+			}
+
+			buf, err = r.Read(ctx)
+
+			switch {
+			case len(buf) == 0 && err != nil:
+				return val, err
+			case len(buf) == 0 && err == nil:
+				return val, io.EOF
+			case len(buf) != 0 && err != nil:
+				errCache = err
+				err = nil
+			case len(buf) != 0 && err == nil:
+			}
+
+			val = buf[0]
+			buf = buf[1:]
+			return
+		},
+	}
+}

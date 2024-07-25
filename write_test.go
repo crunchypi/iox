@@ -212,3 +212,53 @@ func TestNewWriterFromBytesWithWriteErr(t *testing.T) {
 	have := json.NewEncoder(w).Encode(1)
 	assertEq("err", want, have, func(s string) { t.Fatal(s) })
 }
+
+
+// -----------------------------------------------------------------------------
+// Modifiers.
+// -----------------------------------------------------------------------------
+
+func TestWriterWithBatchingIdeal(t *testing.T) {
+	s := make([][]int, 0, 2)
+	w := NewWriterWithBatching(newSliceWriter(&s), 2)
+
+	assertEq("err", *new(error), w.Write(nil, 2), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 3), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 4), func(s string) { t.Fatal(s) })
+
+	assertEq("len", 1, len(s), func(s string) { t.Fatal(s) })
+	assertEq("val", []int{2, 3}, s[0], func(s string) { t.Fatal(s) })
+
+	assertEq("err", *new(error), w.Write(nil, 5), func(s string) { t.Fatal(s) })
+	assertEq("len", 2, len(s), func(s string) { t.Fatal(s) })
+	assertEq("val", []int{4, 5}, s[1], func(s string) { t.Fatal(s) })
+}
+
+func TestWriterWithBatchingWithNilWriter(t *testing.T) {
+	w := NewWriterWithBatching[int](nil, 2)
+
+	err := w.Write(nil, 2)
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+}
+
+func TestWriterWithUnbatchingIdeal(t *testing.T) {
+	s := make([]int, 0, 4)
+	w := NewWriterWithUnbatching(newSliceWriter(&s))
+
+	assertEq("err", *new(error), w.Write(nil, []int{1, 2}), func(s string) { t.Fatal(s) })
+	assertEq("val", []int{1, 2}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestWriterWithUnbatchingWithNilReader(t *testing.T) {
+	w := NewWriterWithUnbatching[int](nil)
+	assertEq("err", io.EOF, w.Write(nil, []int{1, 2}), func(s string) { t.Fatal(s) })
+}
+
+func TestWriterWithUnbatchingWithCustomErrr(t *testing.T) {
+	vw := WriterImpl[int]{}
+	vw.Impl = func(ctx context.Context, i int) error { return io.ErrClosedPipe }
+
+	sw := NewWriterWithUnbatching(vw)
+	err := sw.Write(nil, []int{1, 2})
+	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
+}

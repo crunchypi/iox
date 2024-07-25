@@ -6,7 +6,7 @@ Index
 - [Errors](#errors)
 - [Constructors/Factories](#constructorsfactories)
 - [Impl pattern](#impl-pattern)
-
+- [Modifiers/Wrappers](#constructorsfactories)
 
 
 ## Core interfaces
@@ -260,3 +260,22 @@ func (impl ReadWriteCloserImpl[T, U]) Read(ctx context.Context) (r T, err error)
 func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error)
 ```
 </details>
+
+
+
+## Modifiers/Wrappers
+
+Some helpers are defined for convenience. Their signature are listed below (all links go to the Go playground).
+
+- [`func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T]`](
+	https://go.dev/play/p/SnGdMkV9PNE
+)
+- [`func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T]`](
+	https://go.dev/play/p/yDpf1QOhBS-
+)
+- [`func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T]`](
+	https://go.dev/play/p/0O4QR_en9h1
+)
+- [`func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T]`](
+	https://go.dev/play/p/Z31KN0C2Q-Z
+)

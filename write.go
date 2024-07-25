@@ -198,3 +198,82 @@ func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer {
 		}
 	}
 }
+
+// -----------------------------------------------------------------------------
+// Modifiers.
+// -----------------------------------------------------------------------------
+
+// NewWriterWithBatching returns a Writer which writes into a buffer of a given
+// size. When the buffer is full, it is written into 'w'. Note that this should
+// be used with caution due to the internal buffer, as there may be value loss
+// if the process exits before the buffer is filled and written to 'w', e.g
+// if 'size' is 10 but the process exits after only writing 9 times.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/0O4QR_en9h1
+//
+//  Example:
+//
+//      // Writes which logs values through 't.Log'.
+//	    logWriter := WriterImpl[[]int]{}
+//	    logWriter.Impl = func(_ context.Context, v []int) error { t.Log(v); return nil }
+//
+//	    w := NewWriterWithBatching(logWriter, 2)
+//	    w.Write(nil, 1)
+//	    w.Write(nil, 2) // Logger logs: '[1, 2]'
+//	    w.Write(nil, 3)
+func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T] {
+	if w == nil {
+		return WriterImpl[T]{}
+
+	}
+
+	buf := make([]T, 0, size)
+	return WriterImpl[T]{
+		Impl: func(ctx context.Context, val T) (err error) {
+			buf = append(buf, val)
+
+			if len(buf) >= size {
+				err = w.Write(ctx, buf)
+				buf = make([]T, 0, size)
+			}
+
+			return err
+		},
+	}
+}
+
+// NewWriterWithUnbatching returns a Writer which accepts []T on a Write call,
+// then iterates through the slice and writes each value to 'w'.
+//
+//  Example (interactive):
+//      - https://go.dev/play/p/Z31KN0C2Q-Z
+//
+//  Example:
+//      // Writes which logs values through 't.Log'.
+//	    logWriter := WriterImpl[int]{}
+//	    logWriter.Impl = func(_ context.Context, v int) error { t.Log(v); return nil }
+//
+//	    w := NewWriterWithUnbatching(logWriter)
+//	    w.Write(nil, []int{1, 2})
+//	    // ^ logWriter logs the following lines:
+//	    //  1
+//	    //  2
+func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T] {
+	if w == nil {
+		return WriterImpl[[]T]{}
+	}
+
+	return WriterImpl[[]T]{
+		Impl: func(ctx context.Context, vs []T) (err error) {
+			for _, v := range vs {
+				err = w.Write(ctx, v)
+				if err != nil {
+					return
+				}
+			}
+
+			return
+		},
+	}
+}
