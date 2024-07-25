@@ -249,7 +249,6 @@ func TestNewReaderWithBatchingWithNilReader(t *testing.T) {
 	assertEq("val", *new([]int), s, func(s string) { t.Fatal(s) })
 }
 
-
 func TestNewReaderWithUnbatchingIdeal(t *testing.T) {
 	sr := NewReaderWithBatching(NewReaderFrom(1, 3, 2), 2)
 	vr := NewReaderWithUnbatching(sr)

@@ -213,7 +213,6 @@ func TestNewWriterFromBytesWithWriteErr(t *testing.T) {
 	assertEq("err", want, have, func(s string) { t.Fatal(s) })
 }
 
-
 // -----------------------------------------------------------------------------
 // Modifiers.
 // -----------------------------------------------------------------------------

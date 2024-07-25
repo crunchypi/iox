@@ -19,15 +19,16 @@ type Writer[T any] interface {
 
 // WriterImpl lets you implement Writer with a function. Place it into "impl"
 // and it will be called by the "Write" method.
+//
 // Example:
 //
-//  func myWriter() Writer[int] {
-//      return WriterImpl[int]{
-//          Impl: func(ctx context.Context, v int) error {
-//              // Your implementation.   
-//          },
-//      }
-//  }
+//	func myWriter() Writer[int] {
+//	    return WriterImpl[int]{
+//	        Impl: func(ctx context.Context, v int) error {
+//	            // Your implementation.
+//	        },
+//	    }
+//	}
 type WriterImpl[T any] struct {
 	Impl func(context.Context, T) error
 }
@@ -88,24 +89,25 @@ func (impl WriteCloserImpl[T]) Write(ctx context.Context, v T) (err error) {
 // NewWriterFromValues creates a Writer (vals) which writes into 'w'.
 // Nil 'w' returns an empty non-nil Writer; nil 'f' uses json.NewEncoder.
 //
-//  Example (interactive):
-//      - https://go.dev/play/p/5arKiC4ZxRt
+// Example (interactive):
+//   - https://go.dev/play/p/5arKiC4ZxRt
 //
 // Example:
-//	    // Defining our io.Writer to rcv the data + encoding method.
-//	    b := bytes.NewBuffer(nil)
-//	    f := func(w io.Writer) Encoder { return json.NewEncoder(w) }
-//	    w := NewWriterFromValues[int](b)(f)
 //
-//	    // Write values, they are encoded and passed to 'b'. Err handling ignored.
-//	    w.Write(nil, 2)
+//	// Defining our io.Writer to rcv the data + encoding method.
+//	b := bytes.NewBuffer(nil)
+//	f := func(w io.Writer) Encoder { return json.NewEncoder(w) }
+//	w := NewWriterFromValues[int](b)(f)
 //
-//	    // We'll use these to read what's in 'b'.
-//	    dec := json.NewDecoder(b)
-//	    val := 0
+//	// Write values, they are encoded and passed to 'b'. Err handling ignored.
+//	w.Write(nil, 2)
 //
-//	    t.Log(dec.Decode(&val), val) // <nil> 2
-//	    t.Log(dec.Decode(&val), val) // EOF 2
+//	// We'll use these to read what's in 'b'.
+//	dec := json.NewDecoder(b)
+//	val := 0
+//
+//	t.Log(dec.Decode(&val), val) // <nil> 2
+//	t.Log(dec.Decode(&val), val) // EOF 2
 func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T] {
 	return func(f func(io.Writer) Encoder) Writer[T] {
 		if w == nil {
@@ -138,27 +140,28 @@ func NewWriterFromValues[T any](w io.Writer) func(f encoderFn) Writer[T] {
 // NewWriterFromBytes creates an io.Writer (bytes) which writes into 'w'.
 // Nil 'w' returns an empty non-nil Writer; nil 'f' uses json.NewDecoder.
 //
-//  Example (interactive):
-//      - https://go.dev/play/p/yhaEWVIMoxw
+// Example (interactive):
+//   - https://go.dev/play/p/yhaEWVIMoxw
 //
-//  Example:
-//	    // Writes simply logs values.
-//	    vw := WriterImpl[int]{
-//	    	Impl: func(ctx context.Context, v int) error {
-//	    		t.Log(v)
-//	    		return nil
-//	    	},
-//	    }
+// Example:
 //
-//	    // io.Writer
-//	    bw := NewWriterFromBytes(vw)(
-//	    	func(r io.Reader) Decoder {
-//	    		return json.NewDecoder(r)
-//	    	},
-//	    )
+//	// Writes simply logs values.
+//	vw := WriterImpl[int]{
+//		Impl: func(ctx context.Context, v int) error {
+//			t.Log(v)
+//			return nil
+//		},
+//	}
 //
-//	    // Logs "9"
-//	    json.NewEncoder(bw).Encode(9)
+//	// io.Writer
+//	bw := NewWriterFromBytes(vw)(
+//		func(r io.Reader) Decoder {
+//			return json.NewDecoder(r)
+//		},
+//	)
+//
+//	// Logs "9"
+//	json.NewEncoder(bw).Encode(9)
 func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer {
 	return func(f decoderFn) io.Writer {
 		if w == nil {
@@ -209,19 +212,19 @@ func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer {
 // if the process exits before the buffer is filled and written to 'w', e.g
 // if 'size' is 10 but the process exits after only writing 9 times.
 //
-//  Example (interactive):
-//      - https://go.dev/play/p/0O4QR_en9h1
+// Example (interactive):
+//   - https://go.dev/play/p/0O4QR_en9h1
 //
-//  Example:
+// Example:
 //
-//      // Writes which logs values through 't.Log'.
-//	    logWriter := WriterImpl[[]int]{}
-//	    logWriter.Impl = func(_ context.Context, v []int) error { t.Log(v); return nil }
+//	// Writes which logs values through 't.Log'.
+//	logWriter := WriterImpl[[]int]{}
+//	logWriter.Impl = func(_ context.Context, v []int) error { t.Log(v); return nil }
 //
-//	    w := NewWriterWithBatching(logWriter, 2)
-//	    w.Write(nil, 1)
-//	    w.Write(nil, 2) // Logger logs: '[1, 2]'
-//	    w.Write(nil, 3)
+//	w := NewWriterWithBatching(logWriter, 2)
+//	w.Write(nil, 1)
+//	w.Write(nil, 2) // Logger logs: '[1, 2]'
+//	w.Write(nil, 3)
 func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T] {
 	if w == nil {
 		return WriterImpl[T]{}
@@ -246,19 +249,20 @@ func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T] {
 // NewWriterWithUnbatching returns a Writer which accepts []T on a Write call,
 // then iterates through the slice and writes each value to 'w'.
 //
-//  Example (interactive):
-//      - https://go.dev/play/p/Z31KN0C2Q-Z
+// Example (interactive):
+//   - https://go.dev/play/p/Z31KN0C2Q-Z
 //
-//  Example:
-//      // Writes which logs values through 't.Log'.
-//	    logWriter := WriterImpl[int]{}
-//	    logWriter.Impl = func(_ context.Context, v int) error { t.Log(v); return nil }
+// Example:
 //
-//	    w := NewWriterWithUnbatching(logWriter)
-//	    w.Write(nil, []int{1, 2})
-//	    // ^ logWriter logs the following lines:
-//	    //  1
-//	    //  2
+//	// Writes which logs values through 't.Log'.
+//	logWriter := WriterImpl[int]{}
+//	logWriter.Impl = func(_ context.Context, v int) error { t.Log(v); return nil }
+//
+//	w := NewWriterWithUnbatching(logWriter)
+//	w.Write(nil, []int{1, 2})
+//	// ^ logWriter logs the following lines:
+//	//  1
+//	//  2
 func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T] {
 	if w == nil {
 		return WriterImpl[[]T]{}
