@@ -309,3 +309,44 @@ func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T] {
 		},
 	}
 }
+
+// NewReaderWithFilterFn returns a reader of values from 'r', except for those
+// filtered by 'f'. Nil 'r' returns an empty non-nil Reader; nil 'f' returns 'r'.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/D3C22lZoaCq
+//
+// Example:
+//
+//	r := NewReaderFrom(1, 2, 3)
+//	r = NewReaderWithFilterFn(r)(
+//		func(v int) bool {
+//			return v > 1
+//		},
+//	)
+//
+//	t.Log(r.Read(nil)) // 2, nil
+//	t.Log(r.Read(nil)) // 3, nil
+//	t.Log(r.Read(nil)) // 0, io.EOF
+func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T] {
+	return func(f func(v T) bool) Reader[T] {
+		if r == nil {
+			return ReaderImpl[T]{}
+		}
+		if f == nil {
+			return r
+		}
+
+		return ReaderImpl[T]{
+			Impl: func(ctx context.Context) (val T, err error) {
+				for val, err = r.Read(ctx); err == nil; val, err = r.Read(ctx) {
+					if f(val) {
+						return
+					}
+				}
+
+				return
+			},
+		}
+	}
+}

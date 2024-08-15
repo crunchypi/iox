@@ -300,3 +300,43 @@ func TestNewReaderWithUnbatchingWithEmptyBatchAndErr(t *testing.T) {
 	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
 	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
 }
+
+func TestReaderWithFilterFnIdeal(t *testing.T) {
+	r := NewReaderFrom(1, 2, 3)
+	r = NewReaderWithFilterFn(r)(func(v int) bool { return v%2 == 0 })
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 2, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestReaderWithFilterFnWithNilReader(t *testing.T) {
+	r := NewReaderWithFilterFn[int](nil)(func(v int) bool { return true })
+
+	val, err := r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestReaderWithFilterFnWithNilFilter(t *testing.T) {
+	r := NewReaderFrom(1)
+	r = NewReaderWithFilterFn(r)(nil)
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 1, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
