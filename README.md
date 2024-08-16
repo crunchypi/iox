@@ -282,3 +282,6 @@ Some helpers are defined for convenience. Their signature are listed below (all 
 * [`func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T]`](
 	https://go.dev/play/p/D3C22lZoaCq
 )
+* [`func NewReaderWithMapperFn[T, U any](r Reader[T]) func(f func(T) U) Reader[U]`](
+	https://go.dev/play/p/peiN1EVIbHa
+)

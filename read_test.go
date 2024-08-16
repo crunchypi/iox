@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"testing"
 )
@@ -335,6 +336,49 @@ func TestReaderWithFilterFnWithNilFilter(t *testing.T) {
 	val, err = r.Read(nil)
 	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
 	assertEq("val", 1, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithMapperFnIdeal(t *testing.T) {
+	r := NewReaderFrom(1, 2)
+	r = NewReaderWithMapperFn[int, int](r)(func(v int) int { return v * -1 })
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", -1, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", -2, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithMapperFnWithNilReader(t *testing.T) {
+	r := NewReaderWithMapperFn[int, int](nil)(func(v int) int { return v * -1 })
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithMapperFnWithNilMapper(t *testing.T) {
+	r := NewReaderFrom(1, 2)
+	r = NewReaderWithMapperFn[int, int](r)(nil)
+
+	err := *new(error)
+	val := 0
 
 	val, err = r.Read(nil)
 	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })

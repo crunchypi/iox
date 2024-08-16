@@ -350,3 +350,40 @@ func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T] 
 		}
 	}
 }
+
+// Func NewReaderWithMapperFn returns a reader of mapped values from 'r'.
+// An empty non-nil Reader is returned if either 'r' or 'f' is nil.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/peiN1EVIbHa
+//
+// Example:
+//
+//	ri := NewReaderFrom(1, 2)
+//	rs := NewReaderWithMapperFn[int, string](ri)(
+//	    func(v int) string {
+//	        return fmt.Sprint(v)
+//	    },
+//	)
+//
+//	t.Log(rs.Read(nil)) // "1", nil
+//	t.Log(rs.Read(nil)) // "2", nil
+//	t.Log(rs.Read(nil)) // "", io.EOF
+func NewReaderWithMapperFn[T, U any](r Reader[T]) func(f func(T) U) Reader[U] {
+	return func(f func(T) U) Reader[U] {
+		if r == nil || f == nil {
+			return ReaderImpl[U]{}
+		}
+
+		return ReaderImpl[U]{
+			Impl: func(ctx context.Context) (valOut U, err error) {
+				valIn, err := r.Read(ctx)
+				if err != nil {
+					return valOut, err
+				}
+
+				return f(valIn), err
+			},
+		}
+	}
+}
