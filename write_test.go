@@ -261,3 +261,31 @@ func TestWriterWithUnbatchingWithCustomErrr(t *testing.T) {
 	err := sw.Write(nil, []int{1, 2})
 	assertEq("err", io.ErrClosedPipe, err, func(s string) { t.Fatal(s) })
 }
+
+func TestNewWriterWithFilterFnIdeal(t *testing.T) {
+	s := make([]int, 0, 2)
+	w := NewWriterWithFilterFn(newSliceWriter(&s))(func(v int) bool { return v%2 != 0 })
+
+	assertEq("err", *new(error), w.Write(nil, 1), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 2), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 3), func(s string) { t.Fatal(s) })
+
+	assertEq("val", []int{1, 3}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterWithFilterFnWithNilWriter(t *testing.T) {
+	w := NewWriterWithFilterFn[int](nil)(func(v int) bool { return v%2 != 0 })
+
+	assertEq("err", io.ErrClosedPipe, w.Write(nil, 1), func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterWithFilterFnWithNilFilter(t *testing.T) {
+	s := make([]int, 0, 2)
+	w := NewWriterWithFilterFn(newSliceWriter(&s))(nil)
+
+	assertEq("err", *new(error), w.Write(nil, 1), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 2), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 3), func(s string) { t.Fatal(s) })
+
+	assertEq("val", []int{1, 2, 3}, s, func(s string) { t.Fatal(s) })
+}
