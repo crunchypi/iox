@@ -289,3 +289,29 @@ func TestNewWriterWithFilterFnWithNilFilter(t *testing.T) {
 
 	assertEq("val", []int{1, 2, 3}, s, func(s string) { t.Fatal(s) })
 }
+
+func TestNewWriterWithMapperFnIdeal(t *testing.T) {
+	s := make([]int, 0, 3)
+	w := newSliceWriter(&s)
+	w = NewWriterWithMapperFn[int](w)(func(v int) int { return v + 1 })
+
+	assertEq("err", *new(error), w.Write(nil, 1), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 2), func(s string) { t.Fatal(s) })
+	assertEq("err", *new(error), w.Write(nil, 3), func(s string) { t.Fatal(s) })
+
+	assertEq("val", []int{2, 3, 4}, s, func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterWithMapperFnWithNilWriter(t *testing.T) {
+	w := NewWriterWithMapperFn[int, int](nil)(func(v int) int { return v + 1 })
+
+	assertEq("err", io.ErrClosedPipe, w.Write(nil, 1), func(s string) { t.Fatal(s) })
+}
+
+func TestNewWriterWithMapperFnWithNilMapper(t *testing.T) {
+	s := make([]int, 0, 3)
+	w := newSliceWriter(&s)
+	w = NewWriterWithMapperFn[int](w)(nil)
+
+	assertEq("err", io.ErrClosedPipe, w.Write(nil, 1), func(s string) { t.Fatal(s) })
+}

@@ -288,3 +288,6 @@ Some helpers are defined for convenience. Their signature are listed below (all 
 * [`func NewWriterWithFilterFn[T any](w Writer[T]) func(f func(T) bool) Writer[T]`](
 	https://go.dev/play/p/LM-XNzSmSNV
 )
+* [`func NewWriterWithMapperFn[T, U any](w Writer[U]) func(f func(T) U) Writer[T]`](
+	https://go.dev/play/p/2oTHvWh62mG
+)
