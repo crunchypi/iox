@@ -300,3 +300,86 @@ func TestNewReaderWithUnbatchingWithEmptyBatchAndErr(t *testing.T) {
 	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
 	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
 }
+
+func TestNewReaderWithFilterFnIdeal(t *testing.T) {
+	r := NewReaderFrom(1, 2, 3)
+	r = NewReaderWithFilterFn(r)(func(v int) bool { return v%2 == 0 })
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 2, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithFilterFnWithNilReader(t *testing.T) {
+	r := NewReaderWithFilterFn[int](nil)(func(v int) bool { return true })
+
+	val, err := r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithFilterFnWithNilFilter(t *testing.T) {
+	r := NewReaderFrom(1)
+	r = NewReaderWithFilterFn(r)(nil)
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", 1, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithMapperFnIdeal(t *testing.T) {
+	r := NewReaderFrom(1, 2)
+	r = NewReaderWithMapperFn[int, int](r)(func(v int) int { return v * -1 })
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", -1, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", *new(error), err, func(s string) { t.Fatal(s) })
+	assertEq("val", -2, val, func(s string) { t.Fatal(s) })
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithMapperFnWithNilReader(t *testing.T) {
+	r := NewReaderWithMapperFn[int, int](nil)(func(v int) int { return v * -1 })
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
+
+func TestNewReaderWithMapperFnWithNilMapper(t *testing.T) {
+	r := NewReaderFrom(1, 2)
+	r = NewReaderWithMapperFn[int, int](r)(nil)
+
+	err := *new(error)
+	val := 0
+
+	val, err = r.Read(nil)
+	assertEq("err", io.EOF, err, func(s string) { t.Fatal(s) })
+	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
+}
