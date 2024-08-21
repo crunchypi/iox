@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"testing"
 )
@@ -302,7 +301,7 @@ func TestNewReaderWithUnbatchingWithEmptyBatchAndErr(t *testing.T) {
 	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
 }
 
-func TestReaderWithFilterFnIdeal(t *testing.T) {
+func TestNewReaderWithFilterFnIdeal(t *testing.T) {
 	r := NewReaderFrom(1, 2, 3)
 	r = NewReaderWithFilterFn(r)(func(v int) bool { return v%2 == 0 })
 
@@ -318,7 +317,7 @@ func TestReaderWithFilterFnIdeal(t *testing.T) {
 	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
 }
 
-func TestReaderWithFilterFnWithNilReader(t *testing.T) {
+func TestNewReaderWithFilterFnWithNilReader(t *testing.T) {
 	r := NewReaderWithFilterFn[int](nil)(func(v int) bool { return true })
 
 	val, err := r.Read(nil)
@@ -326,7 +325,7 @@ func TestReaderWithFilterFnWithNilReader(t *testing.T) {
 	assertEq("val", 0, val, func(s string) { t.Fatal(s) })
 }
 
-func TestReaderWithFilterFnWithNilFilter(t *testing.T) {
+func TestNewReaderWithFilterFnWithNilFilter(t *testing.T) {
 	r := NewReaderFrom(1)
 	r = NewReaderWithFilterFn(r)(nil)
 
