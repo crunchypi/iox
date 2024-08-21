@@ -279,3 +279,15 @@ Some helpers are defined for convenience. Their signature are listed below (all 
 - [`func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T]`](
 	https://go.dev/play/p/Z31KN0C2Q-Z
 )
+* [`func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T]`](
+	https://go.dev/play/p/D3C22lZoaCq
+)
+* [`func NewReaderWithMapperFn[T, U any](r Reader[T]) func(f func(T) U) Reader[U]`](
+	https://go.dev/play/p/peiN1EVIbHa
+)
+* [`func NewWriterWithFilterFn[T any](w Writer[T]) func(f func(T) bool) Writer[T]`](
+	https://go.dev/play/p/LM-XNzSmSNV
+)
+* [`func NewWriterWithMapperFn[T, U any](w Writer[U]) func(f func(T) U) Writer[T]`](
+	https://go.dev/play/p/2oTHvWh62mG
+)
