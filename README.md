@@ -2,11 +2,26 @@
 Generic extension of Go's io pkg.
 
 Index 
-- [Core interfaces](#core-interfaces)
 - [Errors](#errors)
+- [Core interfaces](#core-interfaces)
 - [Constructors/Factories](#constructorsfactories)
 - [Impl pattern](#impl-pattern)
 - [Modifiers/Wrappers](#constructorsfactories)
+
+
+
+## Errors
+<details>
+<summary> Expand/collapse section </summary>
+
+This package does *not* define any new errors, it inherits them from the `io` package in the standard library.
+```go
+io.EOF              // Used by e.g iox.Reader: Stop reading/consuming
+io.ErrClosedPipe    // Used by e.g iox.Writer: Stop writing/producing.
+```
+
+</details>
+
 
 
 ## Core interfaces
@@ -71,15 +86,6 @@ type ReadWriteCloser[T, U any] interface {
 }
 ```
 </details>
-
-
-
-## Errors
-This package does *not* define any new errors, it inherits them from the `io` package in the standard library.
-```go
-var io.EOF              // Used by iox.Reader and iox.Decoder
-var io.ErrClosedPipe    // Used by iox.Writer and iox.Encoder
-```
 
 
 
