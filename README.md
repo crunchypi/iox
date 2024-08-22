@@ -27,58 +27,45 @@ io.ErrClosedPipe    // Used by e.g iox.Writer: Stop writing/producing.
 ## Core interfaces
 Core interfaces are the `iox.Reader` and `iox.Writer`listed below. They mirror `io.Reader` and `io.Writer`but differ in that they work with generic values instead. An extra addition is the use of `context.Context`, since io often involves program bounds (also it gives some added flexibility).
 
-#### Reader
 ```go
-// Reader reads T, it is intended as a generic variant of io.Reader.
 type Reader[T any] interface {
 	Read(context.Context) (T, error)
 }
 ```
 
-#### Writer
 ```go
-// Writer writes T, it is intended as a generic variant of io.Writer.
 type Writer[T any] interface {
 	Write(context.Context, T) error
 }
 ```
 
-#### Permutations
-As with the `io` package from the standard library, `iox` readers and writers can be combined with eachother and `io.Closer`. The full set of interfaces can be viewed by clicking belod.
-
 <details>
-<summary> Show all interfaces </summary>
+<summary> As with the io package from the standard library, iox readers and writers are combined with eachother and io.Closer. The full set of combinations can be seen by clicking here </summary>
 
 ```go
-// Reader reads T, it is intended as a generic variant of io.Reader.
 type Reader[T any] interface {
 	Read(context.Context) (T, error)
 }
 
-// ReadCloser groups Reader with io.Closer.
 type ReadCloser[T any] interface {
 	io.Closer
 	Reader[T]
 }
 
-// Writer writes T, it is intended as a generic variant of io.Writer.
 type Writer[T any] interface {
 	Write(context.Context, T) error
 }
 
-// WriteCloser groups Writer with io.Closer.
 type WriteCloser[T any] interface {
 	io.Closer
 	Writer[T]
 }
 
-// ReadWriter groups Reader[T] and Writer[U].
 type ReadWriter[T, U any] interface {
 	Reader[T]
 	Writer[U]
 }
 
-// ReadWriteCloser groups Reader[T] and Writer[U] with io.Closer.
 type ReadWriteCloser[T, U any] interface {
 	io.Closer
 	Reader[T]
