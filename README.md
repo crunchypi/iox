@@ -268,26 +268,26 @@ func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error
 Some helpers are defined for convenience. Their signature are listed below (all links go to the Go playground).
 
 - [`func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T]`](
-	https://go.dev/play/p/SnGdMkV9PNE
+	https://go.dev/play/p/Mn3Cipq8-Gy
 )
 - [`func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T]`](
-	https://go.dev/play/p/yDpf1QOhBS-
+	https://go.dev/play/p/zaLBILUnkgE
 )
 - [`func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T]`](
-	https://go.dev/play/p/0O4QR_en9h1
+	https://go.dev/play/p/sbOaajf3Jt8
 )
 - [`func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T]`](
-	https://go.dev/play/p/Z31KN0C2Q-Z
+	https://go.dev/play/p/6Irv6Z4Nnbg
 )
 * [`func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T]`](
-	https://go.dev/play/p/D3C22lZoaCq
+	https://go.dev/play/p/vYCJChGUKF_Y
 )
 * [`func NewReaderWithMapperFn[T, U any](r Reader[T]) func(f func(T) U) Reader[U]`](
-	https://go.dev/play/p/peiN1EVIbHa
+	https://go.dev/play/p/CaB0N1N5nur
 )
 * [`func NewWriterWithFilterFn[T any](w Writer[T]) func(f func(T) bool) Writer[T]`](
-	https://go.dev/play/p/LM-XNzSmSNV
+	https://go.dev/play/p/BgKAgGVvJ7b
 )
 * [`func NewWriterWithMapperFn[T, U any](w Writer[U]) func(f func(T) U) Writer[T]`](
-	https://go.dev/play/p/2oTHvWh62mG
+	https://go.dev/play/p/V3OvYkJS-mC
 )
