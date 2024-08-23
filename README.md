@@ -4,8 +4,8 @@ Generic extension of Go's io pkg.
 Index 
 - [Errors](#errors)
 - [Core interfaces](#core-interfaces)
-- [Constructors/Factories](#constructorsfactories)
-- [Modifiers/Wrappers](#constructorsfactories)
+- [Constructors](#constructors)
+- [Modifiers](#modifiers)
 
 
 
@@ -91,9 +91,9 @@ Signatures are links to the Go playground (examples).
 
 
 
-## Constructors/Factories
+## Constructors
 
-Here's an overview, all links go to the Go playground.
+All links go to examples on the Go playground.
 
 - [`func NewReaderFrom[T any](vs ...T) Reader[T]`](https://go.dev/play/p/bP73PU1mQvf)
 - [`func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T]`](https://go.dev/play/p/ltcwrgk41Gw)
@@ -154,10 +154,10 @@ func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]
 
 
 
-## Modifiers/Wrappers
+## Modifiers
+All links go to examples on the Go playground.
 
-Some helpers are defined for convenience. Their signature are listed below (all links go to the Go playground).
-
+Batching.
 - [`func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T]`](
 	https://go.dev/play/p/Mn3Cipq8-Gy
 )
@@ -168,8 +168,10 @@ Some helpers are defined for convenience. Their signature are listed below (all 
 	https://go.dev/play/p/sbOaajf3Jt8
 )
 - [`func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T]`](
-	https://go.dev/play/p/6Irv6Z4Nnbg
+	https://go.dev/play/p/E-qP0CE8wV3
 )
+
+Filtering & mapping.
 * [`func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T]`](
 	https://go.dev/play/p/vYCJChGUKF_Y
 )
