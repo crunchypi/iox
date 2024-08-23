@@ -19,6 +19,9 @@ type Reader[T any] interface {
 // ReaderImpl lets you implement Reader with a function. Place it into "impl"
 // and it will be called by the "Read" method.
 //
+// Example (interactive):
+//   - https://go.dev/play/p/gkzrDGzLRtc
+//
 // Example:
 //
 //	func myReader() Reader[int] {
@@ -55,6 +58,9 @@ type ReadCloser[T any] interface {
 
 // ReadCloserImpl lets you implement ReadCloser with functions. This is similar
 // to ReaderImpl but lets you implement io.Closer as well.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/SXA7OWQl5ee
 type ReadCloserImpl[T any] struct {
 	ImplC func() error
 	ImplR func(context.Context) (T, error)
@@ -86,6 +92,9 @@ func (impl ReadCloserImpl[T]) Read(ctx context.Context) (r T, err error) {
 // -----------------------------------------------------------------------------
 
 // NewReaderFrom returns a Reader which yields values from the given vals.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/bP73PU1mQvf
 func NewReaderFrom[T any](vs ...T) Reader[T] {
 	i := 0
 	return ReaderImpl[T]{
@@ -207,7 +216,7 @@ func NewReaderFromValues[T any](r Reader[T]) func(f encoderFn) io.Reader {
 // to 8. Note, the last []T before an err (e.g io.EOF) may be smaller than 'size'.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/SnGdMkV9PNE
+//   - https://go.dev/play/p/Mn3Cipq8-Gy
 //
 // Example:
 //
@@ -259,7 +268,7 @@ func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T] {
 // with caution as an unread buffer may cause value loss.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/yDpf1QOhBS-
+//   - https://go.dev/play/p/zaLBILUnkgE
 //
 // Example:
 //
@@ -314,7 +323,7 @@ func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T] {
 // filtered by 'f'. Nil 'r' returns an empty non-nil Reader; nil 'f' returns 'r'.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/D3C22lZoaCq
+//   - https://go.dev/play/p/vYCJChGUKF_Y
 //
 // Example:
 //
@@ -351,11 +360,11 @@ func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T] 
 	}
 }
 
-// Func NewReaderWithMapperFn returns a reader of mapped values from 'r'.
+// NewReaderWithMapperFn returns a reader of mapped values from 'r'.
 // An empty non-nil Reader is returned if either 'r' or 'f' is nil.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/peiN1EVIbHa
+//   - https://go.dev/play/p/CaB0N1N5nur
 //
 // Example:
 //
