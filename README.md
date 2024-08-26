@@ -2,68 +2,69 @@
 Generic extension of Go's io pkg.
 
 Index 
-- [Core interfaces](#core-interfaces)
 - [Errors](#errors)
-- [Constructors/Factories](#constructorsfactories)
-- [Impl pattern](#impl-pattern)
-- [Modifiers/Wrappers](#constructorsfactories)
+- [Core interfaces](#core-interfaces)
+- [Constructors](#constructors)
+- [Modifiers](#modifiers)
+
+
+
+## Errors
+<details>
+<summary> Expand/collapse section </summary>
+
+This package does *not* define any new errors, it inherits them from the `io` package in the standard library.
+```go
+io.EOF              // Used by e.g iox.Reader: Stop reading/consuming
+io.ErrClosedPipe    // Used by e.g iox.Writer: Stop writing/producing.
+```
+
+</details>
+
 
 
 ## Core interfaces
 Core interfaces are the `iox.Reader` and `iox.Writer`listed below. They mirror `io.Reader` and `io.Writer`but differ in that they work with generic values instead. An extra addition is the use of `context.Context`, since io often involves program bounds (also it gives some added flexibility).
 
-#### Reader
 ```go
-// Reader reads T, it is intended as a generic variant of io.Reader.
 type Reader[T any] interface {
 	Read(context.Context) (T, error)
 }
 ```
 
-#### Writer
 ```go
-// Writer writes T, it is intended as a generic variant of io.Writer.
 type Writer[T any] interface {
 	Write(context.Context, T) error
 }
 ```
 
-#### Permutations
-As with the `io` package from the standard library, `iox` readers and writers can be combined with eachother and `io.Closer`. The full set of interfaces can be viewed by clicking belod.
-
 <details>
-<summary> Show all interfaces </summary>
+<summary> As with the io package from the standard library, iox readers and writers are combined with eachother and io.Closer. The full set of combinations can be seen by clicking here </summary>
 
 ```go
-// Reader reads T, it is intended as a generic variant of io.Reader.
 type Reader[T any] interface {
 	Read(context.Context) (T, error)
 }
 
-// ReadCloser groups Reader with io.Closer.
 type ReadCloser[T any] interface {
 	io.Closer
 	Reader[T]
 }
 
-// Writer writes T, it is intended as a generic variant of io.Writer.
 type Writer[T any] interface {
 	Write(context.Context, T) error
 }
 
-// WriteCloser groups Writer with io.Closer.
 type WriteCloser[T any] interface {
 	io.Closer
 	Writer[T]
 }
 
-// ReadWriter groups Reader[T] and Writer[U].
 type ReadWriter[T, U any] interface {
 	Reader[T]
 	Writer[U]
 }
 
-// ReadWriteCloser groups Reader[T] and Writer[U] with io.Closer.
 type ReadWriteCloser[T, U any] interface {
 	io.Closer
 	Reader[T]
@@ -72,20 +73,27 @@ type ReadWriteCloser[T, U any] interface {
 ```
 </details>
 
+<br>
+<details>
+<summary>  There are also "impl" structs which let you implement core interfaces with functions, which reduces a lot of boilerplate. These can be seen by clicking on this section </summary>
+
+<br>
+
+Signatures are links to the Go playground (examples).
+- [`type ReaderImpl[T any] struct`](https://go.dev/play/p/gkzrDGzLRtc)
+- [`type ReadCloserImpl[T any] struct`](https://go.dev/play/p/SXA7OWQl5ee)
+- [`type WriterImpl[T any] struct`](https://go.dev/play/p/796B8udkJKy)
+- [`type WriteCloserImpl[T any] struct`](https://go.dev/play/p/UE0Bxls3D5D)
+- [`type ReadWriterImpl[T, U any] struct`](https://go.dev/play/p/yl_e7ics0oY)
+- [`type ReadWriteCloserImpl[T, U any] struct`](https://go.dev/play/p/RvmasSrtNo_c)
+
+</details>
 
 
-## Errors
-This package does *not* define any new errors, it inherits them from the `io` package in the standard library.
-```go
-var io.EOF              // Used by iox.Reader and iox.Decoder
-var io.ErrClosedPipe    // Used by iox.Writer and iox.Encoder
-```
 
+## Constructors
 
-
-## Constructors/Factories
-
-Here's an overview, all links go to the Go playground.
+All links go to examples on the Go playground.
 
 - [`func NewReaderFrom[T any](vs ...T) Reader[T]`](https://go.dev/play/p/bP73PU1mQvf)
 - [`func NewReaderFromBytes[T any](r io.Reader) func(f decoderFn) Reader[T]`](https://go.dev/play/p/ltcwrgk41Gw)
@@ -145,149 +153,34 @@ func NewReadWriterFrom[T any](vs ...T) ReadWriter[T, T]
 </details>
 
 
-## Impl pattern
-The impl pattern allows you to implement an interface in a functional way, avoiding the tedium of defining structs which implement small interfaces. You simply define the function and place it inside an impl struct. There is an impl struct for all [Core interfaces](#core-interfaces), but I'll show the one associated with `iox.Reader` to make it clear:
 
-```go
-// Here's how it may be used to e.g implement a Reader mapper:
-//	https://go.dev/play/p/JQY_1vQZ6pz.
-type ReaderImpl[T any] struct {
-	Impl func(context.Context) (T, error)
-}
+## Modifiers
+All links go to examples on the Go playground.
 
-func (impl ReaderImpl[T]) Read(ctx context.Context) (r T, err error) {
-	if impl.Impl == nil {
-		err = io.EOF
-		return
-	}
-
-	return impl.Impl(ctx)
-}
-```
-
-With this pattern you may easily define e.g a mapper func for a `iox.Reader`, e.g [this go playground](https://go.dev/play/p/JQY_1vQZ6pz)
-
-<details>
-<summary>As mentioned, an impl struct exists for all core interfaces, you may see them by clicking here</summary>
-
-#### Impl for Reader
-```go
-// ReaderImpl implements Reader with it's Read method by deferring to 'Impl'.
-type ReaderImpl[T any] struct {
-	Impl func(context.Context) (T, error)
-}
-
-// Read implements Reader by deferring to the internal "Impl" func.
-// If the internal "Impl" is not set, an io.EOF will be returned.
-func (impl ReaderImpl[T]) Read(ctx context.Context) (r T, err error)
-```
-
-#### Impl for ReadCloser
-```go
-// ReadCloserImpl implements Reader and io.Closer with its methods by deferring
-// to ImplC (closer) and ImplR (reader). 
-type ReadCloserImpl[T any] struct {
-	ImplC func() error
-	ImplR func(context.Context) (T, error)
-}
-
-// Read implements Closer by deferring to the internal "ImplC" func.
-func (impl ReadCloserImpl[T]) Close() (err error)
-
-// Read implements Reader by deferring to the internal "ImplR" func.
-func (impl ReadCloserImpl[T]) Read(ctx context.Context) (r T, err error)
-```
-
-#### Impl for Writer.
-```go
-// WriterImpl implements Writer with its Write method by deferring to 'Impl'.
-type WriterImpl[T any] struct {
-	Impl func(context.Context, T) error
-}
-
-// Write implements Writer by deferring to the internal "Impl" func.
-func (impl WriterImpl[T]) Write(ctx context.Context, v T) (err error) 
-```
-
-#### Impl for WriteCloser.
-```go
-// WriteCloserImpl implements Writer and io.Closer with its methods by deferring
-// to ImplC (closer) and ImplW (writer). 
-type WriteCloserImpl[T any] struct {
-	ImplC func() error
-	ImplW func(context.Context, T) error
-}
-
-// Close implements io.Closer by deferring to the internal ImplC func.
-func (impl WriteCloserImpl[T]) Close() error
-
-// Write implements Writer by deferring to the internal "ImplW" func.
-func (impl WriteCloserImpl[T]) Write(ctx context.Context, v T) (err error)
-```
-
-```go
-// ReadWriterImpl implements ReadWriter[T, U] with its Read and Write methods,
-// their logic is deferred to the internal ImplR and ImplW fields (funcs).
-type ReadWriterImpl[T, U any] struct {
-	ImplR func(context.Context) (T, error)
-	ImplW func(context.Context, U) error
-}
-
-// Read implements the Reader[T] part of ReadWriter[T, U] by calling ImplR.
-func (impl ReadWriterImpl[T, U]) Read(ctx context.Context) (r T, err error)
-
-// Write implements the Writer[U] part of ReadWriter[T, U] by calling ImplW.
-func (impl ReadWriterImpl[T, U]) Write(ctx context.Context, v U) (err error)
-```
-
-#### Impl for ReadWriteCloser.
-```go
-// ReadWriteCloserImpl implements ReadWriteCloser with its methods Read, Write
-// and Close, their logic is deferred to the internal ImplR, ImplW and ImplC.
-type ReadWriteCloserImpl[T, U any] struct {
-	ImplC func() error
-	ImplR func(context.Context) (T, error)
-	ImplW func(context.Context, U) error
-}
-
-// Close implements io.Close by deferring to the internal ImplC func.
-func (impl ReadWriteCloserImpl[T, U]) Close() (err error)
-
-// Read implements Reader[T] by deferring logic to the internal ImplR func.
-func (impl ReadWriteCloserImpl[T, U]) Read(ctx context.Context) (r T, err error)
-
-// Write implements Writer[U] by deferring logic to the internal ImplW func.
-func (impl ReadWriteCloserImpl[T, U]) Write(ctx context.Context, v U) (err error)
-```
-</details>
-
-
-
-## Modifiers/Wrappers
-
-Some helpers are defined for convenience. Their signature are listed below (all links go to the Go playground).
-
+Batching.
 - [`func NewReaderWithBatching[T any](r Reader[T], size int) Reader[[]T]`](
-	https://go.dev/play/p/SnGdMkV9PNE
+	https://go.dev/play/p/Mn3Cipq8-Gy
 )
 - [`func NewReaderWithUnbatching[T any](r Reader[[]T]) Reader[T]`](
-	https://go.dev/play/p/yDpf1QOhBS-
+	https://go.dev/play/p/zaLBILUnkgE
 )
 - [`func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T]`](
-	https://go.dev/play/p/0O4QR_en9h1
+	https://go.dev/play/p/sbOaajf3Jt8
 )
 - [`func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T]`](
-	https://go.dev/play/p/Z31KN0C2Q-Z
+	https://go.dev/play/p/E-qP0CE8wV3
 )
+
+Filtering & mapping.
 * [`func NewReaderWithFilterFn[T any](r Reader[T]) func(f func(v T) bool) Reader[T]`](
-	https://go.dev/play/p/D3C22lZoaCq
+	https://go.dev/play/p/vYCJChGUKF_Y
 )
 * [`func NewReaderWithMapperFn[T, U any](r Reader[T]) func(f func(T) U) Reader[U]`](
-	https://go.dev/play/p/peiN1EVIbHa
+	https://go.dev/play/p/CaB0N1N5nur
 )
 * [`func NewWriterWithFilterFn[T any](w Writer[T]) func(f func(T) bool) Writer[T]`](
-	https://go.dev/play/p/LM-XNzSmSNV
+	https://go.dev/play/p/BgKAgGVvJ7b
 )
 * [`func NewWriterWithMapperFn[T, U any](w Writer[U]) func(f func(T) U) Writer[T]`](
-	https://go.dev/play/p/2oTHvWh62mG
+	https://go.dev/play/p/V3OvYkJS-mC
 )

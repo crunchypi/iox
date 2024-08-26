@@ -20,6 +20,9 @@ type Writer[T any] interface {
 // WriterImpl lets you implement Writer with a function. Place it into "impl"
 // and it will be called by the "Write" method.
 //
+// Example (interactive):
+//   - https://go.dev/play/p/796B8udkJKy
+//
 // Example:
 //
 //	func myWriter() Writer[int] {
@@ -49,6 +52,9 @@ func (impl WriterImpl[T]) Write(ctx context.Context, v T) (err error) {
 // -----------------------------------------------------------------------------
 
 // WriteCloser groups Writer with io.Closer.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/UE0Bxls3D5D
 type WriteCloser[T any] interface {
 	io.Closer
 	Writer[T]
@@ -213,7 +219,7 @@ func NewWriterFromBytes[T any](w Writer[T]) func(f decoderFn) io.Writer {
 // if 'size' is 10 but the process exits after only writing 9 times.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/0O4QR_en9h1
+//   - https://go.dev/play/p/sbOaajf3Jt8
 //
 // Example:
 //
@@ -250,7 +256,7 @@ func NewWriterWithBatching[T any](w Writer[[]T], size int) Writer[T] {
 // then iterates through the slice and writes each value to 'w'.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/Z31KN0C2Q-Z
+//   - https://go.dev/play/p/E-qP0CE8wV3
 //
 // Example:
 //
@@ -286,7 +292,7 @@ func NewWriterWithUnbatching[T any](w Writer[T]) Writer[[]T] {
 // those filtered by 'f'. Nil 'w' returns an empty Writer; nil 'f' returns 'w'.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/LM-XNzSmSNV
+//   - https://go.dev/play/p/BgKAgGVvJ7b
 //
 // Example:
 //
@@ -328,7 +334,7 @@ func NewWriterWithFilterFn[T any](w Writer[T]) func(f func(T) bool) Writer[T] {
 // being transformed with 'f'. Nil 'w' or 'f' returns an empty Writer.
 //
 // Example (interactive):
-//   - https://go.dev/play/p/2oTHvWh62mG
+//   - https://go.dev/play/p/V3OvYkJS-mC
 //
 // Example:
 //
