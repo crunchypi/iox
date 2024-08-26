@@ -17,6 +17,9 @@ type ReadWriter[T, U any] interface {
 
 // ReadWriterImpl lets you implement ReadWriter with functions. This is
 // equivalent to using ReaderImpl and WriterImpl combined (see docs).
+//
+// Example (interactive):
+//   - https://go.dev/play/p/yl_e7ics0oY
 type ReadWriterImpl[T, U any] struct {
 	ImplR func(context.Context) (T, error)
 	ImplW func(context.Context, U) error
@@ -57,6 +60,9 @@ type ReadWriteCloser[T, U any] interface {
 
 // ReadWriteCloserImpl lets you implement ReadWriteCloser with functions.
 // This is similar to ReadWriterImpl but lets you implement io.Closer as well.
+//
+// Example (interactive):
+//   - https://go.dev/play/p/RvmasSrtNo_c
 type ReadWriteCloserImpl[T, U any] struct {
 	ImplC func() error
 	ImplR func(context.Context) (T, error)
